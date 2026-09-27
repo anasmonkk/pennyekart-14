@@ -1,5 +1,8 @@
 # Roadmap
 
+## Mobile homepage Utility shortcut
+- [x] Replace scrolling service names with animated Utility category images; keep the icon fallback.
+
 ## Play Store compliance (approved plan)
 - [ ] DB: deletion requests, profile field protection, verification RPCs, anonymise function, FK changes
 - [ ] delete-account server function + Delete Account section (profile + partner dashboards)
