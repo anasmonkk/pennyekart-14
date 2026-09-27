@@ -99,20 +99,20 @@ const AppRoutes = () => {
       <Route path="/admin/locations" element={<ProtectedRoute requirePermission="read_locations"><LocationsPage /></ProtectedRoute>} />
       <Route path="/admin/godowns" element={<ProtectedRoute requirePermission="read_godowns"><GodownsPage /></ProtectedRoute>} />
       <Route path="/admin/purchase" element={<ProtectedRoute requirePermission="create_stock"><PurchasePage /></ProtectedRoute>} />
-      <Route path="/admin/delivery" element={<ProtectedRoute requirePermission="read_users"><DeliveryManagementPage /></ProtectedRoute>} />
-      <Route path="/admin/sellers" element={<ProtectedRoute requirePermission="read_users"><SellingPartnersPage /></ProtectedRoute>} />
-      <Route path="/admin/offers" element={<ProtectedRoute requirePermission="read_products"><OffersPage /></ProtectedRoute>} />
+      <Route path="/admin/delivery" element={<ProtectedRoute requirePermission="read_delivery_staff"><DeliveryManagementPage /></ProtectedRoute>} />
+      <Route path="/admin/sellers" element={<ProtectedRoute requirePermission="read_selling_partners"><SellingPartnersPage /></ProtectedRoute>} />
+      <Route path="/admin/offers" element={<ProtectedRoute requirePermission="read_offers"><OffersPage /></ProtectedRoute>} />
       <Route path="/services" element={<PennyServices />} />
       <Route path="/services/:id" element={<ServiceDetail />} />
       <Route path="/utility-services" element={<UtilityServicesPublic />} />
       <Route path="/pennycarbs" element={<PennyCarbs />} />
       <Route path="/admin/stock-control" element={<ProtectedRoute requirePermission="read_stock"><StockControlPage /></ProtectedRoute>} />
-      <Route path="/admin/settings" element={<ProtectedRoute requirePermission="read_products"><AppSettingsPage /></ProtectedRoute>} />
+      <Route path="/admin/settings" element={<ProtectedRoute requirePermission="read_settings"><AppSettingsPage /></ProtectedRoute>} />
       <Route path="/admin/storage" element={<ProtectedRoute requireSuperAdmin><StorageConfigPage /></ProtectedRoute>} />
-      <Route path="/admin/reports" element={<ProtectedRoute requirePermission="read_orders"><ReportsPage /></ProtectedRoute>} />
-      <Route path="/admin/sales-report" element={<ProtectedRoute requirePermission="read_orders"><SalesReportPage /></ProtectedRoute>} />
-      <Route path="/admin/wallets" element={<ProtectedRoute requirePermission="read_users"><WalletManagementPage /></ProtectedRoute>} />
-      <Route path="/admin/penny-prime" element={<ProtectedRoute requirePermission="read_orders"><PennyPrimePage /></ProtectedRoute>} />
+      <Route path="/admin/reports" element={<ProtectedRoute requirePermission="read_reports"><ReportsPage /></ProtectedRoute>} />
+      <Route path="/admin/sales-report" element={<ProtectedRoute requirePermission="read_reports"><SalesReportPage /></ProtectedRoute>} />
+      <Route path="/admin/wallets" element={<ProtectedRoute requirePermission="read_wallets"><WalletManagementPage /></ProtectedRoute>} />
+      <Route path="/admin/penny-prime" element={<ProtectedRoute requirePermission="read_penny_prime"><PennyPrimePage /></ProtectedRoute>} />
       <Route path="/admin/platform-margin" element={<ProtectedRoute requirePermission="read_products"><PlatformMarginPage /></ProtectedRoute>} />
       <Route path="/admin/chatbot" element={<ProtectedRoute requirePermission="read_settings"><ChatbotSettingsPage /></ProtectedRoute>} />
       <Route path="/admin/notifications" element={<ProtectedRoute requirePermission="read_settings"><NotificationsPage /></ProtectedRoute>} />
