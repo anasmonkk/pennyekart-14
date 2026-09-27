@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { openChat, useChatAvailable } from "@/lib/chatControls";
 import { Button } from "@/components/ui/button";
 
-/* continuous horizontal marquee for the utility services list */
+/* continuous horizontal marquee for the utility services category images */
 const MARQUEE_KEYFRAMES = `
 @keyframes utility-marquee {
   0% { transform: translateX(0); }
@@ -16,7 +16,7 @@ const MARQUEE_KEYFRAMES = `
   display: flex;
   width: max-content;
   white-space: nowrap;
-  animation: utility-marquee 14s linear infinite;
+  animation: utility-marquee 18s linear infinite;
 }
 .utility-marquee-track:hover, .utility-marquee-track:focus-within { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) {
