@@ -17,6 +17,7 @@ const navItems = [
   { label: "Roles & Permissions", icon: ShieldCheck, path: "/admin/roles", perm: null, superOnly: true },
   { label: "Categories", icon: Grid3X3, path: "/admin/categories", perm: "read_categories" },
   { label: "Products", icon: Package, path: "/admin/products", perm: "read_products" },
+  { label: "Combo Offers", icon: Package, path: "/admin/combos", perm: "read_products" },
   { label: "Orders", icon: ShoppingCart, path: "/admin/orders", perm: "read_orders" },
   { label: "Banners", icon: Image, path: "/admin/banners", perm: "read_banners" },
   { label: "Services", icon: Wrench, path: "/admin/services", perm: "read_services" },
