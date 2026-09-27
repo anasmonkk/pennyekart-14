@@ -54,8 +54,7 @@ const MobileBottomNav = () => {
         .select("name")
         .eq("is_active", true)
         .eq("is_approved", true)
-        .order("sort_order")
-        .limit(20);
+        .order("sort_order");
       if (mounted) setUtilityServices([...new Set((data ?? []).map((service) => service.name.trim()).filter(Boolean))]);
     };
     load();
@@ -112,13 +111,6 @@ const MobileBottomNav = () => {
                 </span>
               ) : (
                 <t.icon className="h-5 w-5" />
-              )}
-              {/* Attention ping for Utility */}
-              {isUtility && (
-                <span className="absolute right-1 top-0 flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-                </span>
               )}
               <span>{t.label}</span>
             </Button>
