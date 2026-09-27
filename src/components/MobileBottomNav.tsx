@@ -5,6 +5,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { openChat, useChatAvailable } from "@/lib/chatControls";
 
+/* continuous horizontal marquee for the utility services list */
+const MARQUEE_KEYFRAMES = `
+@keyframes utility-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.utility-marquee-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: utility-marquee 12s linear infinite;
+}
+.utility-marquee-track:hover { animation-play-state: paused; }
+`;
+
 const MobileBottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
