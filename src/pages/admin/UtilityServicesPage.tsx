@@ -27,14 +27,17 @@ const emptyCategory = { name: "", description: "", icon: "", image_url: "", sort
 const emptyService = {
   name: "", description: "", image_url: "", category_id: "", price: 0, price_unit: "fixed",
   contact_phone: "", contact_whatsapp: "", coverage_area: "", is_active: true, is_approved: true, sort_order: 0,
-  requires_location: true,
+  requires_location: true, local_body_id: "", ward_number: "",
 };
+
+interface LocalBody { id: string; name: string; body_type: string; ward_count: number; }
 
 const UtilityServicesPage = () => {
   const [categories, setCategories] = useState<UtilityCategory[]>([]);
   const [services, setServices] = useState<UtilityService[]>([]);
   const [requests, setRequests] = useState<UtilityRequest[]>([]);
   const [providers, setProviders] = useState<Record<string, string>>({});
+  const [localBodies, setLocalBodies] = useState<LocalBody[]>([]);
   const [tab, setTab] = useState("categories");
 
   const [catForm, setCatForm] = useState(emptyCategory);
@@ -50,12 +53,14 @@ const UtilityServicesPage = () => {
   const { toast } = useToast();
 
   const fetchAll = async () => {
-    const [cats, svcs, reqs, profs] = await Promise.all([
+    const [cats, svcs, reqs, profs, lbs] = await Promise.all([
       supabase.from("utility_service_categories").select("*").order("sort_order"),
       supabase.from("utility_services").select("*").order("created_at", { ascending: false }),
       supabase.from("utility_service_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("user_id, full_name, mobile_number").eq("user_type", "selling_partner"),
+      supabase.from("locations_local_bodies").select("id, name, body_type, ward_count").eq("is_active", true).order("sort_order"),
     ]);
+    setLocalBodies((lbs.data as LocalBody[]) ?? []);
     setCategories((cats.data as UtilityCategory[]) ?? []);
     setServices((svcs.data as UtilityService[]) ?? []);
     setRequests((reqs.data as UtilityRequest[]) ?? []);
@@ -88,6 +93,8 @@ const UtilityServicesPage = () => {
       contact_phone: svcForm.contact_phone || null,
       contact_whatsapp: svcForm.contact_whatsapp || null,
       coverage_area: svcForm.coverage_area || null,
+      local_body_id: svcForm.local_body_id || null,
+      ward_number: svcForm.local_body_id && svcForm.ward_number ? parseInt(svcForm.ward_number) || null : null,
     };
     const { error } = svcEditId
       ? await supabase.from("utility_services").update(payload).eq("id", svcEditId)
@@ -130,6 +137,7 @@ const UtilityServicesPage = () => {
       contact_phone: s.contact_phone ?? "", contact_whatsapp: s.contact_whatsapp ?? "",
       coverage_area: s.coverage_area ?? "", is_active: s.is_active, is_approved: s.is_approved, sort_order: s.sort_order,
       requires_location: s.requires_location ?? true,
+      local_body_id: s.local_body_id ?? "", ward_number: s.ward_number ? String(s.ward_number) : "",
     });
     setSvcEditId(s.id); setSvcOpen(true);
   };
@@ -280,6 +288,23 @@ const UtilityServicesPage = () => {
                       <div><Label>WhatsApp</Label><Input value={svcForm.contact_whatsapp} onChange={(e) => setSvcForm({ ...svcForm, contact_whatsapp: e.target.value })} /></div>
                     </div>
                     <div><Label>Coverage Area</Label><Input value={svcForm.coverage_area} onChange={(e) => setSvcForm({ ...svcForm, coverage_area: e.target.value })} placeholder="e.g. Malappuram district" /></div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Available in Panchayath</Label>
+                        <Select value={svcForm.local_body_id || "all"} onValueChange={(v) => setSvcForm({ ...svcForm, local_body_id: v === "all" ? "" : v, ward_number: "" })}>
+                          <SelectTrigger><SelectValue placeholder="All areas" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All areas (everywhere)</SelectItem>
+                            {localBodies.map((lb) => <SelectItem key={lb.id} value={lb.id}>{lb.name} ({lb.body_type})</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Ward (optional)</Label>
+                        <Input type="number" min="1" value={svcForm.ward_number} onChange={(e) => setSvcForm({ ...svcForm, ward_number: e.target.value })} placeholder="All wards" disabled={!svcForm.local_body_id} />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground -mt-1">Pick a panchayath to show this service only to customers of that area. Leave as "All areas" to show it to everyone.</p>
                     <div><Label>Sort Order</Label><Input type="number" value={svcForm.sort_order} onChange={(e) => setSvcForm({ ...svcForm, sort_order: +e.target.value })} /></div>
                     <div className="flex items-center gap-6">
                       <div className="flex items-center gap-2"><Switch checked={svcForm.is_active} onCheckedChange={(v) => setSvcForm({ ...svcForm, is_active: v })} /><Label>Active</Label></div>
