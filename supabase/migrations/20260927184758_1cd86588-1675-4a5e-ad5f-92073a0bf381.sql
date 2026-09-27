@@ -1,0 +1,1 @@
+UPDATE public.profiles SET is_super_admin = true, is_approved = true, email = COALESCE(email,'pennyekart@gmail.com') WHERE user_id = '1fdf6505-078d-4421-a115-3267e250e785';
