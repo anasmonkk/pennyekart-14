@@ -30,7 +30,7 @@ const MobileBottomNav = () => {
   const { user, profile } = useAuth();
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const chatAvailable = useChatAvailable();
-  const [utilityServices, setUtilityServices] = useState<string[]>([]);
+  const [utilityImages, setUtilityImages] = useState<{ url: string; name: string }[]>([]);
 
   useEffect(() => {
     if (user && profile?.user_type === 'customer') {
@@ -45,17 +45,18 @@ const MobileBottomNav = () => {
     }
   }, [user, profile]);
 
-  // Use the same active, approved listings shown on the Utility page.
+  // Show the active Utility category imagery in the mobile shortcut.
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       const { data } = await supabase
-        .from("utility_services")
-        .select("name")
+        .from("utility_service_categories")
+        .select("name, image_url")
         .eq("is_active", true)
-        .eq("is_approved", true)
         .order("sort_order");
-      if (mounted) setUtilityServices([...new Set((data ?? []).map((service) => service.name.trim()).filter(Boolean))]);
+      if (mounted) setUtilityImages((data ?? [])
+        .filter((category) => Boolean(category.image_url))
+        .map((category) => ({ url: category.image_url as string, name: category.name })));
     };
     load();
     return () => { mounted = false; };
@@ -99,12 +100,14 @@ const MobileBottomNav = () => {
                     : "text-muted-foreground hover:text-foreground"
               } ${isChat && chatAvailable !== true ? "opacity-50" : ""}`}
             >
-              {isUtility && utilityServices.length > 0 ? (
-                <span aria-hidden="true" className="block h-5 w-full overflow-hidden text-primary">
-                  <span className="utility-marquee-track h-full items-center text-[10px] font-semibold">
+              {isUtility && utilityImages.length > 0 ? (
+                <span aria-hidden="true" className="block h-5 w-full overflow-hidden">
+                  <span className="utility-marquee-track h-full items-center">
                     {[0, 1].map((copy) => (
-                      <span key={copy} className="inline-flex shrink-0 items-center gap-3 pr-3">
-                        {utilityServices.map((name) => <span key={name}>{name}</span>)}
+                      <span key={copy} className="inline-flex shrink-0 items-center gap-2 pr-2">
+                        {utilityImages.map((image) => (
+                          <img key={`${image.url}-${image.name}`} src={image.url} alt="" loading="lazy" className="h-5 w-5 shrink-0 rounded-full object-cover" />
+                        ))}
                       </span>
                     ))}
                   </span>
