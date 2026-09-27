@@ -2,8 +2,9 @@ import { explainPermission } from "@/lib/permissionPrompt";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Mic, MicOff, Menu, Lock, ShieldCheck } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { setChatAvailable } from "@/lib/chatControls";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -31,6 +32,7 @@ type Bootstrap = {
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 const ChatBot = () => {
+  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -57,11 +59,22 @@ const ChatBot = () => {
         const map: Record<string, string | null> = {};
         data.forEach((r: any) => { map[r.key] = r.value; });
         if (map.enabled === "false") setEnabled(false);
+        setChatAvailable(map.enabled !== "false");
         if (map.bot_name) setBotName(map.bot_name);
         if (map.welcome_message) setWelcomeMessage(map.welcome_message);
+      } else {
+        setChatAvailable(true);
       }
     })();
   }, []);
+
+  useEffect(() => {
+    const handleOpen = () => {
+      if (enabled && !authLoading) setOpen(true);
+    };
+    window.addEventListener("penny:open-chat", handleOpen);
+    return () => window.removeEventListener("penny:open-chat", handleOpen);
+  }, [enabled, authLoading]);
 
   // Bootstrap commands + agent status whenever the chat opens with a logged-in user
   useEffect(() => {
@@ -270,7 +283,7 @@ const ChatBot = () => {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-20 right-4 z-50 md:bottom-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
+          className={`fixed bottom-20 right-4 z-50 md:bottom-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 transition-transform ${location.pathname === "/" ? "hidden md:flex" : ""}`}
           aria-label="Open chat"
         >
           <MessageCircle className="w-6 h-6" />

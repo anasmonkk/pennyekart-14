@@ -1,14 +1,16 @@
-import { Home, Tag, User, ShoppingCart, PlayCircle, Wallet } from "lucide-react";
+import { Home, Tag, MessageCircle, Wrench, PlayCircle, Wallet } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
+import { openChat, useChatAvailable } from "@/lib/chatControls";
 
 const MobileBottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, profile } = useAuth();
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const chatAvailable = useChatAvailable();
 
   useEffect(() => {
     if (user && profile?.user_type === 'customer') {
@@ -29,8 +31,8 @@ const MobileBottomNav = () => {
     ...(user && walletBalance !== null
       ? [{ icon: Wallet, label: `₹${walletBalance}`, path: "/customer/wallet" }]
       : [{ icon: Tag, label: "Top Deals", path: "/" }]),
-    { icon: User, label: "Account", path: "/customer/profile" },
-    { icon: ShoppingCart, label: "Cart", path: "/cart" },
+    { icon: Wrench, label: "Utility", path: "/utility-services" },
+    { icon: MessageCircle, label: "Chat", path: "chat" },
   ];
 
   return (
@@ -39,14 +41,18 @@ const MobileBottomNav = () => {
         {tabs.map((t) => (
           <button
             key={t.label}
-            onClick={() => navigate(t.path)}
+            onClick={() => t.path === "chat" ? openChat() : navigate(t.path)}
+            disabled={t.path === "chat" && chatAvailable !== true}
+            aria-label={t.label}
             className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
-              location.pathname === t.path
+              location.pathname === t.path && t.path !== "/"
                 ? "text-primary"
+                : t.path === "/" && t.label === "Home" && location.pathname === "/"
+                  ? "text-primary"
                 : t.path === "/customer/wallet"
                   ? "text-emerald-600"
                   : "text-muted-foreground hover:text-foreground"
-            }`}
+            } ${t.path === "chat" && chatAvailable !== true ? "opacity-50" : ""}`}
           >
             <t.icon className="h-5 w-5" />
             <span>{t.label}</span>
