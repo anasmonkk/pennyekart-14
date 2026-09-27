@@ -78,12 +78,23 @@ const UtilityServices = () => {
         (supabase as any).rpc("get_utility_providers"),
       ]);
       setCategories((cats.data as UtilityCategory[]) ?? []);
-      setServices((svcs.data as UtilityService[]) ?? []);
+      // Area scoping: a service pinned to a panchayath is only shown to customers
+      // of that panchayath (and ward, when the service sets one). Services with no
+      // panchayath are shown to everyone.
+      const myLb = (profile as any)?.local_body_id ?? null;
+      const myWard = (profile as any)?.ward_number ?? null;
+      const visible = ((svcs.data as UtilityService[]) ?? []).filter((s) => {
+        if (!s.local_body_id) return true;
+        if (!myLb || s.local_body_id !== myLb) return false;
+        if (s.ward_number && myWard && s.ward_number !== myWard) return false;
+        return true;
+      });
+      setServices(visible);
       setProviders((provs?.data as ProviderInfo[]) ?? []);
       setLoading(false);
     };
     load();
-  }, []);
+  }, [profile?.local_body_id, profile?.ward_number]);
 
   const isProductCat = activeCat?.category_type === "product";
 
