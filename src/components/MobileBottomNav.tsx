@@ -103,8 +103,8 @@ const MobileBottomNav = () => {
                       loading="lazy"
                       className={`shrink-0 rounded-full object-cover transition-all duration-500 ${
                         i === activeUtilityIdx
-                          ? "h-9 w-9 -my-1.5 shadow-md ring-2 ring-primary/40"
-                          : "h-3.5 w-3.5 opacity-70"
+                          ? "h-12 w-12 -my-3 utility-tab-glow"
+                          : "h-4 w-4 opacity-70"
                       }`}
                     />
                   ))}
