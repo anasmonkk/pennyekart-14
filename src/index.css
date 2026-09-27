@@ -105,6 +105,33 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Utility tab carousel: warm light glow around the active (main) image */
+  .utility-tab-glow {
+    box-shadow:
+      0 0 0 2px hsl(var(--primary) / 0.5),
+      0 0 12px 2px hsl(var(--primary) / 0.55),
+      0 0 24px 6px hsl(var(--primary) / 0.28),
+      0 4px 10px rgba(0, 0, 0, 0.15);
+    animation: utility-glow-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes utility-glow-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 0 2px hsl(var(--primary) / 0.5),
+        0 0 12px 2px hsl(var(--primary) / 0.55),
+        0 0 24px 6px hsl(var(--primary) / 0.28),
+        0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      box-shadow:
+        0 0 0 2px hsl(var(--primary) / 0.6),
+        0 0 16px 4px hsl(var(--primary) / 0.7),
+        0 0 30px 8px hsl(var(--primary) / 0.4),
+        0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+  }
 }
 
 /* Admin responsive table wrapper */
