@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { openChat, useChatAvailable } from "@/lib/chatControls";
+import { Button } from "@/components/ui/button";
 
 /* continuous horizontal marquee for the utility services list */
 const MARQUEE_KEYFRAMES = `
@@ -12,11 +13,15 @@ const MARQUEE_KEYFRAMES = `
   100% { transform: translateX(-50%); }
 }
 .utility-marquee-track {
-  display: inline-flex;
+  display: flex;
+  width: max-content;
   white-space: nowrap;
-  animation: utility-marquee 12s linear infinite;
+  animation: utility-marquee 14s linear infinite;
 }
-.utility-marquee-track:hover { animation-play-state: paused; }
+.utility-marquee-track:hover, .utility-marquee-track:focus-within { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .utility-marquee-track { animation: none; }
+}
 `;
 
 const MobileBottomNav = () => {
@@ -25,8 +30,7 @@ const MobileBottomNav = () => {
   const { user, profile } = useAuth();
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const chatAvailable = useChatAvailable();
-  const [utilityImages, setUtilityImages] = useState<string[]>([]);
-  const [imgIdx, setImgIdx] = useState(0);
+  const [utilityServices, setUtilityServices] = useState<string[]>([]);
 
   useEffect(() => {
     if (user && profile?.user_type === 'customer') {
@@ -41,28 +45,21 @@ const MobileBottomNav = () => {
     }
   }, [user, profile]);
 
-  // Load utility service category images for the cycling attention animation
+  // Use the same active, approved listings shown on the Utility page.
   useEffect(() => {
+    let mounted = true;
     const load = async () => {
       const { data } = await supabase
-        .from("utility_service_categories")
-        .select("image_url")
+        .from("utility_services")
+        .select("name")
         .eq("is_active", true)
+        .eq("is_approved", true)
         .order("sort_order");
-      setUtilityImages(
-        (data ?? [])
-          .map((c: any) => c.image_url as string)
-          .filter(Boolean)
-      );
+      if (mounted) setUtilityServices([...new Set((data ?? []).map((service) => service.name.trim()).filter(Boolean))]);
     };
     load();
+    return () => { mounted = false; };
   }, []);
-
-  useEffect(() => {
-    if (utilityImages.length < 2) return;
-    const t = setInterval(() => setImgIdx((i) => (i + 1) % utilityImages.length), 2500);
-    return () => clearInterval(t);
-  }, [utilityImages.length]);
 
   const tabs = [
     { icon: Home, label: "Home", path: "/" },
@@ -74,10 +71,9 @@ const MobileBottomNav = () => {
     { icon: Wrench, label: "Utility", path: "/utility-services" },
   ];
 
-  const currentImg = utilityImages[imgIdx];
-
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card md:hidden">
+      <style>{MARQUEE_KEYFRAMES}</style>
       <div className="flex items-center justify-around py-2">
         {tabs.map((t) => {
           const isUtility = t.label === "Utility";
@@ -89,12 +85,13 @@ const MobileBottomNav = () => {
                 ? true
                 : false;
           return (
-            <button
+            <Button
+              variant="ghost"
               key={t.label}
               onClick={() => (isChat ? openChat() : navigate(t.path))}
               disabled={isChat && chatAvailable !== true}
               aria-label={t.label}
-              className={`relative flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
+              className={`relative h-auto w-1/5 min-w-0 flex-col gap-0.5 overflow-hidden rounded-none p-0 text-[10px] font-medium transition-colors hover:bg-transparent ${
                 active
                   ? "text-primary"
                   : t.path === "/customer/wallet"
@@ -102,28 +99,21 @@ const MobileBottomNav = () => {
                     : "text-muted-foreground hover:text-foreground"
               } ${isChat && chatAvailable !== true ? "opacity-50" : ""}`}
             >
-              {isUtility && currentImg ? (
-                <span className="relative flex h-5 w-5 items-center justify-center overflow-hidden">
-                  <img
-                    key={currentImg}
-                    src={currentImg}
-                    alt="Utility"
-                    className="h-full w-full animate-fade-in rounded-full object-cover"
-                    loading="lazy"
-                  />
+              {isUtility && utilityServices.length > 0 ? (
+                <span aria-hidden="true" className="block h-5 w-full overflow-hidden text-primary">
+                  <span className="utility-marquee-track h-full items-center text-[10px] font-semibold">
+                    {[0, 1].map((copy) => (
+                      <span key={copy} className="inline-flex shrink-0 items-center gap-3 pr-3">
+                        {utilityServices.map((name) => <span key={name}>{name}</span>)}
+                      </span>
+                    ))}
+                  </span>
                 </span>
               ) : (
                 <t.icon className="h-5 w-5" />
               )}
-              {/* Attention ping for Utility */}
-              {isUtility && (
-                <span className="absolute right-1 top-0 flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-                </span>
-              )}
               <span>{t.label}</span>
-            </button>
+            </Button>
           );
         })}
       </div>
