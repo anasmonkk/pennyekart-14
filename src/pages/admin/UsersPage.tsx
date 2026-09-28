@@ -350,7 +350,7 @@ const UsersPage = () => {
         </TabsList>
       </Tabs>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row gap-3 mb-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -372,6 +372,71 @@ const UsersPage = () => {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-4 items-center">
+        <Select value={filterApproval} onValueChange={setFilterApproval}>
+          <SelectTrigger className="w-full sm:w-40 h-9"><SelectValue placeholder="Approval" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Approval</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="pending">Pending Approval</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterBlocked} onValueChange={setFilterBlocked}>
+          <SelectTrigger className="w-full sm:w-36 h-9"><SelectValue placeholder="Blocked" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="blocked">Blocked</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterDistrict} onValueChange={setFilterDistrict}>
+          <SelectTrigger className="w-full sm:w-40 h-9"><SelectValue placeholder="District" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Districts</SelectItem>
+            {districts.map((d) => (
+              <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterLocalBody} onValueChange={(v) => { setFilterLocalBody(v); setFilterWard("all"); }}>
+          <SelectTrigger className="w-full sm:w-48 h-9"><SelectValue placeholder="Panchayath" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Panchayaths</SelectItem>
+            <SelectItem value="none">No Panchayath</SelectItem>
+            {localBodies
+              .filter(lb => filterDistrict === "all" || districts.find(d => d.id === lb.district_id)?.name === filterDistrict)
+              .map((lb) => (
+                <SelectItem key={lb.id} value={lb.id}>{lb.name}</SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterWard} onValueChange={setFilterWard}>
+          <SelectTrigger className="w-full sm:w-32 h-9"><SelectValue placeholder="Ward" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Wards</SelectItem>
+            <SelectItem value="none">No Ward</SelectItem>
+            {availableWards.map((w) => (
+              <SelectItem key={w} value={String(w)}>Ward {w}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {(filterType === "all" || filterType === "selling_partner") && (
+          <Select value={filterSellerType} onValueChange={setFilterSellerType}>
+            <SelectTrigger className="w-full sm:w-40 h-9"><SelectValue placeholder="Seller Type" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Seller Types</SelectItem>
+              <SelectItem value="normal">Normal Seller</SelectItem>
+              <SelectItem value="utility">Utility Seller</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+        {activeFilterCount > 0 && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
+            Clear filters ({activeFilterCount})
+          </Button>
+        )}
       </div>
 
       {isCustomerTab ? (
