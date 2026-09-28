@@ -111,6 +111,8 @@ const UsersPage = () => {
 
     const localBodies = (localBodiesRes.data ?? []) as LocalBody[];
     const districts = (districtsRes.data ?? []) as District[];
+    setLocalBodies(localBodies);
+    setDistricts(districts);
 
     const allProfiles = (usersRes.data ?? []) as unknown as Profile[];
     
@@ -174,6 +176,28 @@ const UsersPage = () => {
         ? result.filter(u => !u.role_id)
         : result.filter(u => u.role_id === filterRole);
     }
+    if (filterApproval !== "all") {
+      result = result.filter(u => (filterApproval === "approved" ? u.is_approved : !u.is_approved));
+    }
+    if (filterBlocked !== "all") {
+      result = result.filter(u => (filterBlocked === "blocked" ? u.is_blocked : !u.is_blocked));
+    }
+    if (filterDistrict !== "all") {
+      result = result.filter(u => u.district_name === filterDistrict);
+    }
+    if (filterLocalBody !== "all") {
+      result = filterLocalBody === "none"
+        ? result.filter(u => !u.local_body_id)
+        : result.filter(u => u.local_body_id === filterLocalBody);
+    }
+    if (filterWard !== "all") {
+      result = filterWard === "none"
+        ? result.filter(u => u.ward_number == null)
+        : result.filter(u => u.ward_number === Number(filterWard));
+    }
+    if (filterSellerType !== "all") {
+      result = result.filter(u => u.user_type === "selling_partner" && (u.seller_type ?? "normal") === filterSellerType);
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(u =>
@@ -183,9 +207,24 @@ const UsersPage = () => {
       );
     }
     return result;
-  }, [users, filterType, filterRole, searchQuery]);
+  }, [users, filterType, filterRole, filterApproval, filterBlocked, filterDistrict, filterLocalBody, filterWard, filterSellerType, searchQuery]);
 
-  useMemo(() => { setCurrentPage(1); }, [filterType, filterRole, searchQuery]);
+  useMemo(() => { setCurrentPage(1); }, [filterType, filterRole, filterApproval, filterBlocked, filterDistrict, filterLocalBody, filterWard, filterSellerType, searchQuery]);
+
+  const availableWards = useMemo(() => {
+    const wards = new Set<number>();
+    users.forEach(u => {
+      if (u.ward_number != null && (filterLocalBody === "all" || u.local_body_id === filterLocalBody)) wards.add(u.ward_number);
+    });
+    return Array.from(wards).sort((a, b) => a - b);
+  }, [users, filterLocalBody]);
+
+  const activeFilterCount = [filterRole, filterApproval, filterBlocked, filterDistrict, filterLocalBody, filterWard, filterSellerType].filter(f => f !== "all").length;
+
+  const clearFilters = () => {
+    setFilterRole("all"); setFilterApproval("all"); setFilterBlocked("all");
+    setFilterDistrict("all"); setFilterLocalBody("all"); setFilterWard("all"); setFilterSellerType("all");
+  };
 
   const isCustomerTab = filterType === "customer";
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
