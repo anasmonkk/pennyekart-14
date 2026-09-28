@@ -335,7 +335,10 @@ const UsersPage = () => {
 
   return (
     <AdminLayout>
-      <h1 className="mb-4 text-2xl font-bold">Users Management</h1>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold">Users Management</h1>
+        {isSuperAdmin && <AddAdminDialog roles={roles} onCreated={fetchData} />}
+      </div>
 
       <Tabs value={filterType} onValueChange={setFilterType} className="mb-4">
         <TabsList>
