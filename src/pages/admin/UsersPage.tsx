@@ -68,7 +68,15 @@ const UsersPage = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [filterType, setFilterType] = useState("all");
   const [filterRole, setFilterRole] = useState("all");
+  const [filterApproval, setFilterApproval] = useState("all");
+  const [filterBlocked, setFilterBlocked] = useState("all");
+  const [filterDistrict, setFilterDistrict] = useState("all");
+  const [filterLocalBody, setFilterLocalBody] = useState("all");
+  const [filterWard, setFilterWard] = useState("all");
+  const [filterSellerType, setFilterSellerType] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [localBodies, setLocalBodies] = useState<LocalBody[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const { isSuperAdmin } = usePermissions();
