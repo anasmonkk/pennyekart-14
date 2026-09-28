@@ -68,7 +68,15 @@ const UsersPage = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [filterType, setFilterType] = useState("all");
   const [filterRole, setFilterRole] = useState("all");
+  const [filterApproval, setFilterApproval] = useState("all");
+  const [filterBlocked, setFilterBlocked] = useState("all");
+  const [filterDistrict, setFilterDistrict] = useState("all");
+  const [filterLocalBody, setFilterLocalBody] = useState("all");
+  const [filterWard, setFilterWard] = useState("all");
+  const [filterSellerType, setFilterSellerType] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [localBodies, setLocalBodies] = useState<LocalBody[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const { isSuperAdmin } = usePermissions();
@@ -103,6 +111,8 @@ const UsersPage = () => {
 
     const localBodies = (localBodiesRes.data ?? []) as LocalBody[];
     const districts = (districtsRes.data ?? []) as District[];
+    setLocalBodies(localBodies);
+    setDistricts(districts);
 
     const allProfiles = (usersRes.data ?? []) as unknown as Profile[];
     
@@ -166,6 +176,28 @@ const UsersPage = () => {
         ? result.filter(u => !u.role_id)
         : result.filter(u => u.role_id === filterRole);
     }
+    if (filterApproval !== "all") {
+      result = result.filter(u => (filterApproval === "approved" ? u.is_approved : !u.is_approved));
+    }
+    if (filterBlocked !== "all") {
+      result = result.filter(u => (filterBlocked === "blocked" ? u.is_blocked : !u.is_blocked));
+    }
+    if (filterDistrict !== "all") {
+      result = result.filter(u => u.district_name === filterDistrict);
+    }
+    if (filterLocalBody !== "all") {
+      result = filterLocalBody === "none"
+        ? result.filter(u => !u.local_body_id)
+        : result.filter(u => u.local_body_id === filterLocalBody);
+    }
+    if (filterWard !== "all") {
+      result = filterWard === "none"
+        ? result.filter(u => u.ward_number == null)
+        : result.filter(u => u.ward_number === Number(filterWard));
+    }
+    if (filterSellerType !== "all") {
+      result = result.filter(u => u.user_type === "selling_partner" && (u.seller_type ?? "normal") === filterSellerType);
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(u =>
@@ -175,9 +207,24 @@ const UsersPage = () => {
       );
     }
     return result;
-  }, [users, filterType, filterRole, searchQuery]);
+  }, [users, filterType, filterRole, filterApproval, filterBlocked, filterDistrict, filterLocalBody, filterWard, filterSellerType, searchQuery]);
 
-  useMemo(() => { setCurrentPage(1); }, [filterType, filterRole, searchQuery]);
+  useMemo(() => { setCurrentPage(1); }, [filterType, filterRole, filterApproval, filterBlocked, filterDistrict, filterLocalBody, filterWard, filterSellerType, searchQuery]);
+
+  const availableWards = useMemo(() => {
+    const wards = new Set<number>();
+    users.forEach(u => {
+      if (u.ward_number != null && (filterLocalBody === "all" || u.local_body_id === filterLocalBody)) wards.add(u.ward_number);
+    });
+    return Array.from(wards).sort((a, b) => a - b);
+  }, [users, filterLocalBody]);
+
+  const activeFilterCount = [filterRole, filterApproval, filterBlocked, filterDistrict, filterLocalBody, filterWard, filterSellerType].filter(f => f !== "all").length;
+
+  const clearFilters = () => {
+    setFilterRole("all"); setFilterApproval("all"); setFilterBlocked("all");
+    setFilterDistrict("all"); setFilterLocalBody("all"); setFilterWard("all"); setFilterSellerType("all");
+  };
 
   const isCustomerTab = filterType === "customer";
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
@@ -303,7 +350,7 @@ const UsersPage = () => {
         </TabsList>
       </Tabs>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row gap-3 mb-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -325,6 +372,71 @@ const UsersPage = () => {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-4 items-center">
+        <Select value={filterApproval} onValueChange={setFilterApproval}>
+          <SelectTrigger className="w-full sm:w-40 h-9"><SelectValue placeholder="Approval" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Approval</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="pending">Pending Approval</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterBlocked} onValueChange={setFilterBlocked}>
+          <SelectTrigger className="w-full sm:w-36 h-9"><SelectValue placeholder="Blocked" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="blocked">Blocked</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterDistrict} onValueChange={setFilterDistrict}>
+          <SelectTrigger className="w-full sm:w-40 h-9"><SelectValue placeholder="District" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Districts</SelectItem>
+            {districts.map((d) => (
+              <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterLocalBody} onValueChange={(v) => { setFilterLocalBody(v); setFilterWard("all"); }}>
+          <SelectTrigger className="w-full sm:w-48 h-9"><SelectValue placeholder="Panchayath" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Panchayaths</SelectItem>
+            <SelectItem value="none">No Panchayath</SelectItem>
+            {localBodies
+              .filter(lb => filterDistrict === "all" || districts.find(d => d.id === lb.district_id)?.name === filterDistrict)
+              .map((lb) => (
+                <SelectItem key={lb.id} value={lb.id}>{lb.name}</SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterWard} onValueChange={setFilterWard}>
+          <SelectTrigger className="w-full sm:w-32 h-9"><SelectValue placeholder="Ward" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Wards</SelectItem>
+            <SelectItem value="none">No Ward</SelectItem>
+            {availableWards.map((w) => (
+              <SelectItem key={w} value={String(w)}>Ward {w}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {(filterType === "all" || filterType === "selling_partner") && (
+          <Select value={filterSellerType} onValueChange={setFilterSellerType}>
+            <SelectTrigger className="w-full sm:w-40 h-9"><SelectValue placeholder="Seller Type" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Seller Types</SelectItem>
+              <SelectItem value="normal">Normal Seller</SelectItem>
+              <SelectItem value="utility">Utility Seller</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+        {activeFilterCount > 0 && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
+            Clear filters ({activeFilterCount})
+          </Button>
+        )}
       </div>
 
       {isCustomerTab ? (
