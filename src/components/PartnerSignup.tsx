@@ -101,6 +101,7 @@ const PartnerSignup = ({ userType, title, description, sellerType, loginPath: lo
           user_type: userType,
           local_body_id: localBodyId || null,
           ward_number: wardNumber ? parseInt(wardNumber) : null,
+          ...(userType === "selling_partner" ? { seller_type: sellerType ?? "normal" } : {}),
         },
       },
     });
