@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import CustomerList from "@/components/admin/CustomerList";
+import AddAdminDialog from "@/components/admin/AddAdminDialog";
 import { Search, ChevronLeft, ChevronRight, MoreHorizontal, Pencil, Trash2, KeyRound } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -335,7 +336,10 @@ const UsersPage = () => {
 
   return (
     <AdminLayout>
-      <h1 className="mb-4 text-2xl font-bold">Users Management</h1>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold">Users Management</h1>
+        {isSuperAdmin && <AddAdminDialog roles={roles} onCreated={fetchData} />}
+      </div>
 
       <Tabs value={filterType} onValueChange={setFilterType} className="mb-4">
         <TabsList>
