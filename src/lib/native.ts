@@ -17,6 +17,29 @@ export const isNativeApp = () => Capacitor.isNativePlatform();
 export const nativePlatform = (): "android" | "ios" | "web" =>
   Capacitor.getPlatform() as "android" | "ios" | "web";
 
+const FCM_TOKEN_KEY = "pennyekart_fcm_token";
+
+/** Saves the FCM token to the signed-in user's profile. Never throws. */
+const saveFcmToken = async (token: string, knownUserId?: string) => {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    let userId = knownUserId;
+    if (!userId) {
+      const { data } = await supabase.auth.getSession();
+      userId = data.session?.user.id;
+    }
+    if (!userId) return; // kept locally; saved after sign-in
+    const { error } = await supabase
+      .from("profiles")
+      .update({ fcm_token: token } as never)
+      .eq("user_id", userId);
+    if (error) throw error;
+    console.log("FCM token saved");
+  } catch (err) {
+    console.error("FCM token save failed:", err);
+  }
+};
+
 /**
  * One-time native bootstrap. Safe to call on the web — it no-ops there.
  *
@@ -68,7 +91,18 @@ export const initNativeApp = async () => {
 
     // Attached once here, before any register() call (also reused by enableNotifications).
     await PushNotifications.addListener("registration", (token) => {
-      console.log("FCM registration token:", token.value);
+      console.log("FCM token received");
+      try { localStorage.setItem(FCM_TOKEN_KEY, token.value); } catch { /* ignore */ }
+      void saveFcmToken(token.value);
+    });
+
+    // Save a pending token once the user signs in (or on session restore).
+    const { supabase } = await import("@/integrations/supabase/client");
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (!session || (event !== "SIGNED_IN" && event !== "INITIAL_SESSION")) return;
+      let pending: string | null = null;
+      try { pending = localStorage.getItem(FCM_TOKEN_KEY); } catch { /* ignore */ }
+      if (pending) setTimeout(() => void saveFcmToken(pending!, session.user.id), 0);
     });
     await PushNotifications.addListener("registrationError", (error) => {
       console.error("FCM registration error:", error);
