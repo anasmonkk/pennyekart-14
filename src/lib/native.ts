@@ -6,7 +6,7 @@ import { Capacitor } from "@capacitor/core";
  * "Default FirebaseApp is not initialized" exception on the CapacitorPlugins
  * thread, which kills the app (cannot be caught from JavaScript).
  */
-export const PUSH_CONFIGURED = false;
+export const PUSH_CONFIGURED = true;
 
 /**
  * True only when running inside the native Android/iOS shell.
@@ -65,8 +65,22 @@ export const initNativeApp = async () => {
     // Listeners only — permission is NOT requested at launch. It is requested
     // from the profile ("Turn on notifications") after an explanation popup.
     const { PushNotifications } = await import("@capacitor/push-notifications");
+
+    // Attached once here, before any register() call (also reused by enableNotifications).
+    await PushNotifications.addListener("registration", (token) => {
+      console.log("FCM registration token:", token.value);
+    });
+    await PushNotifications.addListener("registrationError", (error) => {
+      console.error("FCM registration error:", error);
+    });
+    await PushNotifications.addListener("pushNotificationReceived", (notification) => {
+      console.log("Push notification received:", notification);
+    });
+
     const perm = await PushNotifications.checkPermissions();
-    if (PUSH_CONFIGURED && perm.receive === "granted") await PushNotifications.register();
+    if (PUSH_CONFIGURED && perm.receive === "granted") {
+      await PushNotifications.register();
+    }
     await PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
       const url = (action.notification.data as { url?: string } | undefined)?.url;
       if (url && url.startsWith("/")) {
