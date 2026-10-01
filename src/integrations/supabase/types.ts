@@ -1642,6 +1642,7 @@ export type Database = {
           date_of_birth: string | null
           delivery_type: string | null
           email: string | null
+          fcm_token: string | null
           full_name: string | null
           gst_number: string | null
           id: string
@@ -1685,6 +1686,7 @@ export type Database = {
           date_of_birth?: string | null
           delivery_type?: string | null
           email?: string | null
+          fcm_token?: string | null
           full_name?: string | null
           gst_number?: string | null
           id?: string
@@ -1728,6 +1730,7 @@ export type Database = {
           date_of_birth?: string | null
           delivery_type?: string | null
           email?: string | null
+          fcm_token?: string | null
           full_name?: string | null
           gst_number?: string | null
           id?: string
