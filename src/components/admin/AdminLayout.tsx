@@ -37,7 +37,8 @@ const navItems = [
   { label: "Sales Report", icon: BarChart3, path: "/admin/sales-report", perm: "read_reports" },
   { label: "Reports", icon: BarChart3, path: "/admin/reports", perm: "read_reports" },
   { label: "Chatbot Settings", icon: Bot, path: "/admin/chatbot", perm: "read_settings" },
-  { label: "Notifications", icon: Bell, path: "/admin/notifications", perm: "read_settings" },
+  { label: "Internal Notifications", icon: Bell, path: "/admin/notifications", perm: "read_settings" },
+  { label: "Push Notifications", icon: Bell, path: "/admin/push-notifications", perm: "read_settings" },
   { label: "Scratch & Win", icon: Gift, path: "/admin/scratch-rewards", perm: "read_settings" },
   { label: "Communities", icon: Users, path: "/admin/communities", perm: "read_users" },
 ];

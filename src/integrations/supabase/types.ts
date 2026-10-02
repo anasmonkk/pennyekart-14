@@ -1799,6 +1799,60 @@ export type Database = {
         }
         Relationships: []
       }
+      push_campaigns: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          failed_count: number
+          id: string
+          image_url: string | null
+          invalid_tokens_cleared: number
+          link_url: string | null
+          message: string
+          sent_at: string | null
+          sent_count: number
+          status: string
+          target_audience: string
+          target_local_body_ids: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          id?: string
+          image_url?: string | null
+          invalid_tokens_cleared?: number
+          link_url?: string | null
+          message: string
+          sent_at?: string | null
+          sent_count?: number
+          status?: string
+          target_audience?: string
+          target_local_body_ids?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          id?: string
+          image_url?: string | null
+          invalid_tokens_cleared?: number
+          link_url?: string | null
+          message?: string
+          sent_at?: string | null
+          sent_count?: number
+          status?: string
+          target_audience?: string
+          target_local_body_ids?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           created_at: string
