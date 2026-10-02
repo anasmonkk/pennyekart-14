@@ -1196,6 +1196,7 @@ export type Database = {
           items: Json
           seller_id: string | null
           seller_product_id: string | null
+          seller_push_sent_at: string | null
           shipping_address: string | null
           status: string
           total: number
@@ -1212,6 +1213,7 @@ export type Database = {
           items?: Json
           seller_id?: string | null
           seller_product_id?: string | null
+          seller_push_sent_at?: string | null
           shipping_address?: string | null
           status?: string
           total?: number
@@ -1228,6 +1230,7 @@ export type Database = {
           items?: Json
           seller_id?: string | null
           seller_product_id?: string | null
+          seller_push_sent_at?: string | null
           shipping_address?: string | null
           status?: string
           total?: number
@@ -2814,6 +2817,7 @@ export type Database = {
           items: Json
           seller_id: string | null
           seller_product_id: string | null
+          seller_push_sent_at: string | null
           shipping_address: string | null
           status: string
           total: number
