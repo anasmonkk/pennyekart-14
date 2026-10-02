@@ -115,17 +115,11 @@ export const initNativeApp = async () => {
     if (PUSH_CONFIGURED && perm.receive === "granted") {
       await PushNotifications.register();
     }
-    await PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
-      const url = (action.notification.data as { url?: string } | undefined)?.url;
-      if (!url || !url.startsWith("/") || url.startsWith("//")) return;
-      // In-app navigation (works on cold start too, once the router is mounted).
-      const go = () => {
-        if (window.location.pathname + window.location.search === url) return;
-        window.history.pushState({}, "", url);
-        window.dispatchEvent(new PopStateEvent("popstate"));
-      };
-      if (document.readyState === "complete") setTimeout(go, 300);
-      else window.addEventListener("load", () => setTimeout(go, 300), { once: true });
+    await PushNotifications.addListener("pushNotificationActionPerformed", async (action) => {
+      // Running app: navigates via React Router now. Cold start: queued until the router mounts.
+      const { pushTargetFromData, requestPushNavigation } = await import("@/lib/pushNavigation");
+      const target = pushTargetFromData(action.notification.data as Record<string, unknown> | undefined);
+      if (target) requestPushNavigation(target);
     });
   } catch {
     // push unavailable (e.g. missing google-services.json yet) — ignore
