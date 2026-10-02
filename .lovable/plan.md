@@ -1,19 +1,22 @@
-# Seller "Turn On Notifications" button
+# Add notifications button to Seller Profile
 
-## What changes
-1. New small card component `SellerNotificationCard` (seller-only), placed in the Selling Partner dashboard Profile tab, just above the Account section.
-2. Button label: "Turn On Notifications" with a bell icon. Tapping it calls the existing `enableNotifications()` from `src/lib/native.ts`. That function already shows the explanation popup, asks Android for permission, registers with Firebase, and saves the token to `profiles.fcm_token`.
-3. Messages:
-   - Granted: "Notifications are now enabled."
-   - Denied: "Notification permission was not granted. Please enable notifications from Android Settings."
-   - Already on (checked at load via the push plugin in the app, or browser permission on the web): shows a disabled "Notifications Enabled" status instead of the button.
-4. Styled with the existing card/button look; full width on phones.
+## Changes
+1. Add a notifications section in `/selling-partner/dashboard` under the **Profile** tab, directly above the existing Account section.
+2. Reuse the existing notification permission flow so the button:
+   - Shows a bell icon and **Turn On Notifications**.
+   - Displays a loading state while permission and registration are processed.
+   - Confirms success when notifications are enabled.
+   - Explains that Android Settings can be used when permission is denied.
+   - Hides once notifications are enabled.
+3. Keep the control full-width on phones and aligned with the existing Profile styling.
 
-## Not touched
-`native.ts` logic, token saving, `NewOrderNotification`, realtime orders, seller push function, push tap navigation, Firebase files, customer and delivery staff screens.
+## Scope protection
+- Do not change Android package/application IDs.
+- Do not change Firebase configuration or `google-services.json`.
+- Do not change notification delivery, order handling, or customer/delivery screens.
 
-## Note on app ID
-The project's app ID is currently `com.pennyekart.app` (not `com.pennyekart.seller` as your notes say). The plan leaves it unchanged. Tell me if it should be changed — that also needs a matching Firebase file.
-
-## Checks after
-Build passes, `/selling-partner/login` opens, push and navigation code still present.
+## Verification
+- Confirm the button appears only in the Seller dashboard Profile tab.
+- Confirm the permission explanation opens and the existing registration flow is called.
+- Confirm success, denied, loading, and already-enabled states behave correctly.
+- Confirm the Profile tab remains usable at phone and desktop sizes and the production build succeeds.
