@@ -117,9 +117,15 @@ export const initNativeApp = async () => {
     }
     await PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
       const url = (action.notification.data as { url?: string } | undefined)?.url;
-      if (url && url.startsWith("/")) {
-        window.location.href = url;
-      }
+      if (!url || !url.startsWith("/") || url.startsWith("//")) return;
+      // In-app navigation (works on cold start too, once the router is mounted).
+      const go = () => {
+        if (window.location.pathname + window.location.search === url) return;
+        window.history.pushState({}, "", url);
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      };
+      if (document.readyState === "complete") setTimeout(go, 300);
+      else window.addEventListener("load", () => setTimeout(go, 300), { once: true });
     });
   } catch {
     // push unavailable (e.g. missing google-services.json yet) — ignore
