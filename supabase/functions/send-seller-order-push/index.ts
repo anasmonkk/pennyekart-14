@@ -99,8 +99,8 @@ Deno.serve(async (req) => {
           headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
           body: JSON.stringify({ message: {
             token,
-            notification: { title: `New Order #${shortRef}`, body: "You have received a new order from Pennyekart." },
-            data: { type: "seller_order", order_id: orderId, url },
+            notification: { title: "New Order Received", body: `You have received a new order (#${shortRef}). Tap to view the order.` },
+            data: { type: "seller_order", order_id: orderId, orderId, url },
             android: { priority: "high", notification: { channel_id: "default_notification_channel" } },
           } }),
         });
