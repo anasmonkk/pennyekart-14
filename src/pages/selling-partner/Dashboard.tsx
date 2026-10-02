@@ -23,6 +23,7 @@ import ProductVariants from "@/components/admin/ProductVariants";
 import logo from "@/assets/logo.png";
 import NewOrderNotification from "@/components/NewOrderNotification";
 import PartnerAvatar from "@/components/partner/PartnerAvatar";
+import NotificationToggle from "@/components/NotificationToggle";
 
 interface SellerProduct {
   id: string;
@@ -1189,6 +1190,17 @@ const SellingPartnerDashboard = () => {
                 {profileLoading ? "Saving..." : "Save Profile"}
               </Button>
             </form>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Notifications</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <NotificationToggle />
+              </CardContent>
+            </Card>
+
+            <AccountSettingsSection className="space-y-3" />
           </TabsContent>
         </Tabs>
       </main>
@@ -1209,7 +1221,6 @@ const SellingPartnerDashboard = () => {
         onOpenChange={(v) => { if (!v) setDetailOrder(null); }}
         statusLabel={(s) => STATUS_LABELS[s] || s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
       />
-      <AccountSettingsSection />
     </div>
   );
 };
