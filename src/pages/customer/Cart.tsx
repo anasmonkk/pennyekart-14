@@ -419,6 +419,11 @@ const Cart = () => {
         const { data: insertedOrder, error } = await supabase.from("orders").insert(order).select("id").single();
         if (error) throw error;
         if (!firstOrderId && insertedOrder) firstOrderId = insertedOrder.id;
+        // Fire-and-forget seller push; never blocks or fails the order.
+        if (insertedOrder?.id) {
+          supabase.functions.invoke("send-seller-order-push", { body: { order_id: insertedOrder.id } })
+            .catch(() => {});
+        }
       }
 
       // Record penny prime coupon use if applied

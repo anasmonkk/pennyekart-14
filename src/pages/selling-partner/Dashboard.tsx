@@ -1,5 +1,6 @@
 import AccountSettingsSection from "@/components/AccountSettingsSection";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -103,6 +104,21 @@ const SellingPartnerDashboard = () => {
   const [addStockProduct, setAddStockProduct] = useState<SellerProduct | null>(null);
   const [addStockQty, setAddStockQty] = useState("");
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "products");
+  // Deep link from seller order push: ?tab=orders&order=<id>
+  useEffect(() => {
+    const oid = searchParams.get("order");
+    if (!oid || !orders.length) return;
+    const found = orders.find((o) => o.id === oid);
+    if (found) {
+      setActiveTab("orders");
+      setDetailOrder(found);
+      const next = new URLSearchParams(searchParams);
+      next.delete("order");
+      setSearchParams(next, { replace: true });
+    }
+  }, [orders, searchParams]);
 
   // Profile settings state
   const [profileForm, setProfileForm] = useState({
@@ -524,7 +540,7 @@ const SellingPartnerDashboard = () => {
         </div>
 
 
-        <Tabs defaultValue="products">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full grid grid-cols-6">
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
