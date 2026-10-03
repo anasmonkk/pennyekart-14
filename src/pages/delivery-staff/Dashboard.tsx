@@ -23,6 +23,7 @@ interface Order {
 }
 
 const DeliveryStaffDashboard = () => {
+  const focusOrderId = new URLSearchParams(window.location.search).get("order");
   const { user, profile, signOut } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [walletBalance, setWalletBalance] = useState<number>(0);
@@ -31,6 +32,18 @@ const DeliveryStaffDashboard = () => {
   const [deliveryType, setDeliveryType] = useState<"fixed" | "part_time">("fixed");
   const [assignedWards, setAssignedWards] = useState<{ local_body_name: string; ward_number: number; local_body_id?: string }[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!focusOrderId || loading) return;
+    const t = setTimeout(() => {
+      const el = Array.from(document.querySelectorAll(`[id="order-${focusOrderId}"]`)).find((e) => (e as HTMLElement).offsetParent) as HTMLElement | undefined;
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-primary");
+      setTimeout(() => el.classList.remove("ring-2", "ring-primary"), 4000);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [focusOrderId, loading, orders]);
 
   const fetchData = async () => {
     if (!user) return;
