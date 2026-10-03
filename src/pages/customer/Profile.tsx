@@ -73,6 +73,7 @@ const Profile = () => {
   const [mobile, setMobile] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [detailOrder, setDetailOrder] = useState<Order | null>(null);
   const [activeSection, setActiveSection] = useState(initialTab);
   const [roleName, setRoleName] = useState<string | null>(null);
   const { notifications, loading: notificationsLoading, markRead } = useNotifications();
@@ -201,7 +202,7 @@ const Profile = () => {
     const currentStep = getStatusIndex(order.status);
 
     return (
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden cursor-pointer transition-shadow hover:shadow-md" onClick={() => setDetailOrder(order)}>
         <CardContent className="p-0">
           <div className="flex items-center justify-between p-4 bg-muted/30">
             <div>
