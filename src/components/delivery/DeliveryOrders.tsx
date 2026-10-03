@@ -46,10 +46,12 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
   const microOrders = orders.filter(o => !isAreaGodownOrder(o));
   const areaOrders = orders.filter(o => isAreaGodownOrder(o));
 
-  const activeMicro = microOrders.filter(o => o.status !== "delivered");
-  const activeArea = areaOrders.filter(o => o.status !== "delivered");
+  const CLOSED = ["delivered", "cancelled", "return_requested", "return_accepted", "return_collected", "return_confirmed"];
+  const activeMicro = microOrders.filter(o => !CLOSED.includes(o.status));
+  const activeArea = areaOrders.filter(o => !CLOSED.includes(o.status));
 
-  const returnOrders = orders.filter(o => o.status === "return_requested");
+  const RETURN_FLOW = ["return_requested", "return_accepted", "return_collected", "return_confirmed"];
+  const returnOrders = orders.filter(o => ["return_requested", "return_accepted", "return_collected"].includes(o.status));
 
   const activeOrders = orders.filter((o) => !["delivered", "cancelled", "return_requested", "return_confirmed"].includes(o.status));
   const deliveredOrders = orders.filter((o) => {
@@ -82,15 +84,90 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
     onRefresh();
   };
 
-  const confirmReturn = async (order: Order) => {
-    const { error } = await supabase.from("orders").update({ status: "return_confirmed" }).eq("id", order.id);
+  const advanceReturn = async (order: Order) => {
+    const idx = RETURN_FLOW.indexOf(order.status);
+    const next = RETURN_FLOW[idx + 1];
+    if (!next) return;
+    if (next === "return_confirmed" && !window.confirm("Finish this return? Items will be added back to stock.")) return;
+    const { error } = await supabase.from("orders").update({ status: next }).eq("id", order.id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Return confirmed — stock restored" });
+    toast({ title: next === "return_accepted" ? "Return accepted" : next === "return_collected" ? "Items collected" : "Return finished — stock restored" });
     onRefresh();
   };
+
+  const Steps = ({ flow, current, labels }: { flow: string[]; current: string; labels: Record<string, string> }) => {
+    const idx = flow.indexOf(current);
+    return (
+      <div className="flex items-center gap-1 flex-wrap">
+        {flow.map((s, i) => (
+          <div key={s} className="flex items-center gap-1">
+            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${i <= idx ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground"}`}>{labels[s] ?? s.replace(/_/g, " ")}</span>
+            {i < flow.length - 1 && <span className="text-muted-foreground text-[10px]">›</span>}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const STEP_LABELS: Record<string, string> = {
+    pending: "Pending", seller_confirmation_pending: "Seller", seller_accepted: "Seller OK", accepted: "Accepted",
+    pickup: "Picked", shipped: "On the way", delivered: "Delivered",
+    return_requested: "Requested", return_accepted: "Accepted", return_collected: "Collected", return_confirmed: "Finished",
+  };
+
+  const actionLabel = (next: string) =>
+    next === "accepted" ? "Accept" : next === "pickup" ? "Pickup" : next === "shipped" ? "Ship" : next === "delivered" ? "Mark Delivered" : next.replace(/_/g, " ");
+
+  const ItemsList = ({ order }: { order: Order }) =>
+    Array.isArray(order.items) && order.items.length > 0 ? (
+      <div className="space-y-1 border-t pt-2">
+        {order.items.map((item: any, idx: number) => (
+          <div key={idx} className="flex items-center gap-2">
+            {(item.image_url || item.image) && <img src={item.image_url || item.image} alt={item.name} className="h-9 w-9 rounded border object-cover shrink-0" />}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium truncate">{item.name || "Item"}</p>
+              <p className="text-[10px] text-muted-foreground">Qty {item.quantity || 1} × ₹{item.price ?? 0}</p>
+            </div>
+            <span className="text-xs font-medium">₹{(item.quantity || 1) * (item.price ?? 0)}</span>
+          </div>
+        ))}
+      </div>
+    ) : null;
+
+  const OrderCards = ({ items }: { items: Order[] }) => (
+    <div className="space-y-3">
+      {items.length === 0 ? (
+        <p className="text-center text-sm text-muted-foreground py-6">No pending orders</p>
+      ) : items.map((o) => {
+        const isSeller = !!o.seller_id || SELLER_STATUS_FLOW.includes(o.status);
+        const flow = isSeller ? SELLER_STATUS_FLOW : STATUS_FLOW;
+        const next = getNextStatus(o.status, o);
+        return (
+          <div key={o.id} className="border rounded-lg p-3 space-y-2 bg-card">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-sm font-medium">#{o.id.slice(0, 8)}</span>
+              <Badge variant="secondary">₹{o.total}</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">{o.shipping_address || "No address"}</p>
+            <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString()}{(o as any).delivery_charge ? ` · Delivery ₹${(o as any).delivery_charge}` : ""}</p>
+            <Steps flow={flow} current={o.status} labels={STEP_LABELS} />
+            <ItemsList order={o} />
+            <div className="flex gap-2 pt-1">
+              {o.status === "seller_confirmation_pending" ? (
+                <span className="flex-1 text-xs text-muted-foreground self-center">Waiting for seller to accept</span>
+              ) : next ? (
+                <Button size="sm" className="flex-1" onClick={() => updateOrderStatus(o, next)}>{actionLabel(next)}</Button>
+              ) : <span className="flex-1" />}
+              <Button size="sm" variant="outline" onClick={() => setDetailOrder(o)}><Eye className="h-4 w-4 mr-1" />Details</Button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 
   const deductSellerStock = async (order: Order) => {
     if (!Array.isArray(order.items)) return;
@@ -233,7 +310,7 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
             <CardTitle className="text-sm text-muted-foreground">Micro Godown Orders — You accept first, then pick up & deliver</CardTitle>
           </CardHeader>
           <CardContent className="pt-2">
-            <OrderTable items={activeMicro} showAction />
+            <OrderCards items={activeMicro} />
           </CardContent>
         </Card>
       </TabsContent>
@@ -244,7 +321,7 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
             <CardTitle className="text-sm text-muted-foreground">Area Godown Orders — Seller must accept first before you can proceed</CardTitle>
           </CardHeader>
           <CardContent className="pt-2">
-            <OrderTable items={activeArea} showAction />
+            <OrderCards items={activeArea} />
           </CardContent>
         </Card>
       </TabsContent>
@@ -252,38 +329,32 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
       <TabsContent value="returns">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Return Requests — Confirm after verifying returned items</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Returns — Accept, collect items from customer, then finish</CardTitle>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Address</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {returnOrders.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No return requests</TableCell></TableRow>
-                  ) : returnOrders.map((o) => (
-                    <TableRow key={o.id}>
-                      <TableCell className="font-mono text-xs">{o.id.slice(0, 8)}…</TableCell>
-                      <TableCell>₹{o.total}</TableCell>
-                      <TableCell className="text-sm max-w-[200px] truncate">{o.shipping_address ?? "—"}</TableCell>
-                      <TableCell><Badge variant="secondary">Return Requested</Badge></TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Button size="sm" onClick={() => confirmReturn(o)}>Confirm Return</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-3">
+              {returnOrders.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-6">No return requests</p>
+              ) : returnOrders.map((o) => {
+                const next = RETURN_FLOW[RETURN_FLOW.indexOf(o.status) + 1];
+                return (
+                  <div key={o.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-sm font-medium">#{o.id.slice(0, 8)}</span>
+                      <Badge variant="secondary">₹{o.total}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{o.shipping_address || "No address"}</p>
+                    <Steps flow={RETURN_FLOW} current={o.status} labels={STEP_LABELS} />
+                    <ItemsList order={o} />
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" className="flex-1" onClick={() => advanceReturn(o)}>
+                        {next === "return_accepted" ? "Accept Return" : next === "return_collected" ? "Collected Items" : "Finish Return"}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setDetailOrder(o)}><Eye className="h-4 w-4 mr-1" />Details</Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
