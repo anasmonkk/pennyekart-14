@@ -27,6 +27,11 @@ interface Props {
   onChanged: () => void;
 }
 
+// Accounts created via "Add Admin": have a role and a real email.
+// Mobile-login users get auto emails (@pennyekart.in / @pennyekart.local) and are excluded.
+export const isAddedAdmin = (u: { is_super_admin: boolean; role_id: string | null; email: string | null }) =>
+  !u.is_super_admin && !!u.role_id && !!u.email && !/@pennyekart\.(in|local)$/i.test(u.email.trim());
+
 const AdminsPanel = ({ users, roles, canEdit, onChanged }: Props) => {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -36,8 +41,7 @@ const AdminsPanel = ({ users, roles, canEdit, onChanged }: Props) => {
   const admins = useMemo(() => {
     const s = q.trim().toLowerCase();
     return users
-      // Only accounts created via "Add Admin" (they always have an email + role)
-      .filter((u) => (u.is_super_admin || u.role_id) && !!u.email)
+      .filter(isAddedAdmin)
       .filter((u) => !s || [u.full_name, u.email, u.mobile_number].some((v) => v?.toLowerCase().includes(s)))
       .sort((a, b) => Number(b.is_super_admin) - Number(a.is_super_admin) || (a.full_name ?? "").localeCompare(b.full_name ?? ""));
   }, [users, q]);
