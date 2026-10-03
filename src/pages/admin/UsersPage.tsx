@@ -380,7 +380,12 @@ const UsersPage = () => {
     <AdminLayout>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Users Management</h1>
-        {isSuperAdmin && <AddAdminDialog roles={roles} onCreated={fetchData} />}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportCsv}>
+            <Download className="mr-1.5 h-4 w-4" /> Export CSV
+          </Button>
+          {isSuperAdmin && <AddAdminDialog roles={roles} onCreated={fetchData} />}
+        </div>
       </div>
 
       <Tabs value={filterType} onValueChange={setFilterType} className="mb-4">
