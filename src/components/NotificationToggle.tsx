@@ -1,14 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { enableNotifications } from "@/lib/native";
+import { enableNotifications, isNativeApp } from "@/lib/native";
+
+/** Reads the real permission state (phone app or browser). */
+const isGranted = async (): Promise<boolean> => {
+  if (isNativeApp()) {
+    try {
+      const { PushNotifications } = await import("@capacitor/push-notifications");
+      const perm = await PushNotifications.checkPermissions();
+      return perm.receive === "granted";
+    } catch {
+      return false;
+    }
+  }
+  return typeof Notification !== "undefined" && Notification.permission === "granted";
+};
 
 const NotificationToggle = () => {
   const [busy, setBusy] = useState(false);
-  const granted = typeof Notification !== "undefined" && Notification.permission === "granted";
-  const [on, setOn] = useState(granted);
-  if (on) return null;
+  const [on, setOn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    isGranted().then((g) => { if (alive) setOn(g); });
+    return () => { alive = false; };
+  }, []);
+
+  if (on === null || on) return null;
   return (
     <Button variant="outline" className="w-full gap-2" disabled={busy} onClick={async () => {
       setBusy(true);
