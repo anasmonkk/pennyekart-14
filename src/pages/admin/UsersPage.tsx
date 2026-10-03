@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import CustomerList from "@/components/admin/CustomerList";
 import AddAdminDialog from "@/components/admin/AddAdminDialog";
+import AdminsPanel from "@/components/admin/AdminsPanel";
 import { Search, ChevronLeft, ChevronRight, MoreHorizontal, Pencil, Trash2, KeyRound } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -351,9 +352,19 @@ const UsersPage = () => {
               </Badge>
             </TabsTrigger>
           ))}
+          <TabsTrigger value="admins">
+            Admins
+            <Badge variant="outline" className="ml-2 text-xs">
+              {users.filter(u => u.is_super_admin || u.role_id).length}
+            </Badge>
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
+      {filterType === "admins" ? (
+        <AdminsPanel users={users} roles={roles} canEdit={isSuperAdmin} onChanged={fetchData} />
+      ) : (
+      <>
       <div className="flex flex-col sm:flex-row gap-3 mb-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -584,6 +595,8 @@ const UsersPage = () => {
             </div>
           )}
         </>
+      )}
+      </>
       )}
 
       {/* Edit User Dialog */}
