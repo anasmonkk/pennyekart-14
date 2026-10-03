@@ -36,7 +36,8 @@ const AdminsPanel = ({ users, roles, canEdit, onChanged }: Props) => {
   const admins = useMemo(() => {
     const s = q.trim().toLowerCase();
     return users
-      .filter((u) => u.is_super_admin || u.role_id)
+      // Only accounts created via "Add Admin" (they always have an email + role)
+      .filter((u) => (u.is_super_admin || u.role_id) && !!u.email)
       .filter((u) => !s || [u.full_name, u.email, u.mobile_number].some((v) => v?.toLowerCase().includes(s)))
       .sort((a, b) => Number(b.is_super_admin) - Number(a.is_super_admin) || (a.full_name ?? "").localeCompare(b.full_name ?? ""));
   }, [users, q]);

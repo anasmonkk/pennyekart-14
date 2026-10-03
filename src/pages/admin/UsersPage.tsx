@@ -355,7 +355,7 @@ const UsersPage = () => {
           <TabsTrigger value="admins">
             Admins
             <Badge variant="outline" className="ml-2 text-xs">
-              {users.filter(u => u.is_super_admin || u.role_id).length}
+              {users.filter(u => (u.is_super_admin || u.role_id) && u.email).length}
             </Badge>
           </TabsTrigger>
         </TabsList>
