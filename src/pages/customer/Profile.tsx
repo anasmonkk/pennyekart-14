@@ -231,7 +231,7 @@ const Profile = () => {
 
           <div className="flex items-center justify-between p-4">
             <p className="text-sm font-bold">₹{order.total.toFixed(2)}</p>
-            <div className="flex gap-2">
+            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
               {canCancel(order.status) && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
