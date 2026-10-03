@@ -53,7 +53,7 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
   const RETURN_FLOW = ["return_requested", "return_accepted", "return_collected", "return_confirmed"];
   const returnOrders = orders.filter(o => ["return_requested", "return_accepted", "return_collected"].includes(o.status));
 
-  const activeOrders = orders.filter((o) => !["delivered", "cancelled", "return_requested", "return_confirmed"].includes(o.status));
+  const activeOrders = orders.filter((o) => !["delivered", "cancelled", "return_requested", "return_accepted", "return_collected", "return_confirmed"].includes(o.status));
   const deliveredOrders = orders.filter((o) => {
     if (!["delivered", "cancelled", "return_confirmed"].includes(o.status)) return false;
     if (dateFrom && new Date(o.created_at) < new Date(dateFrom)) return false;
