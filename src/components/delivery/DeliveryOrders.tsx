@@ -35,6 +35,7 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const [allStatusFilter, setAllStatusFilter] = useState("all");
 
   // Separate orders by godown type
   const isAreaGodownOrder = (o: Order) => 
@@ -60,6 +61,25 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
     if (dateTo && new Date(o.created_at) > new Date(dateTo + "T23:59:59")) return false;
     return true;
   });
+
+  // All orders tab: newest first, with optional status filter
+  const ALL_STATUSES = [
+    { value: "all", label: "All statuses" },
+    { value: "seller_confirmation_pending", label: "Waiting for seller" },
+    { value: "seller_accepted", label: "Seller accepted" },
+    { value: "pending", label: "Pending" },
+    { value: "accepted", label: "Accepted" },
+    { value: "pickup", label: "Picked up" },
+    { value: "shipped", label: "On the way" },
+    { value: "delivered", label: "Delivered" },
+    { value: "cancelled", label: "Cancelled" },
+    { value: "return_requested", label: "Return requested" },
+    { value: "return_accepted", label: "Return accepted" },
+    { value: "return_collected", label: "Return collected" },
+    { value: "return_confirmed", label: "Return finished" },
+  ];
+  const allSorted = [...orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const filteredAll = allStatusFilter === "all" ? allSorted : allSorted.filter((o) => o.status === allStatusFilter);
 
   const getNextStatus = (current: string, order: Order) => {
     // Determine if this is a seller order based on seller_id or status
