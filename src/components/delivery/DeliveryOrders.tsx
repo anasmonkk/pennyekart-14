@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Truck, History, Warehouse, Store, RotateCcw, Eye } from "lucide-react";
+import { Truck, History, Warehouse, Store, RotateCcw, Eye, List } from "lucide-react";
 import OrderDetailDialog from "@/components/OrderDetailDialog";
 
 interface Order {
@@ -35,6 +35,7 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const [allStatusFilter, setAllStatusFilter] = useState("all");
 
   // Separate orders by godown type
   const isAreaGodownOrder = (o: Order) => 
@@ -60,6 +61,25 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
     if (dateTo && new Date(o.created_at) > new Date(dateTo + "T23:59:59")) return false;
     return true;
   });
+
+  // All orders tab: newest first, with optional status filter
+  const ALL_STATUSES = [
+    { value: "all", label: "All statuses" },
+    { value: "seller_confirmation_pending", label: "Waiting for seller" },
+    { value: "seller_accepted", label: "Seller accepted" },
+    { value: "pending", label: "Pending" },
+    { value: "accepted", label: "Accepted" },
+    { value: "pickup", label: "Picked up" },
+    { value: "shipped", label: "On the way" },
+    { value: "delivered", label: "Delivered" },
+    { value: "cancelled", label: "Cancelled" },
+    { value: "return_requested", label: "Return requested" },
+    { value: "return_accepted", label: "Return accepted" },
+    { value: "return_collected", label: "Return collected" },
+    { value: "return_confirmed", label: "Return finished" },
+  ];
+  const allSorted = [...orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const filteredAll = allStatusFilter === "all" ? allSorted : allSorted.filter((o) => o.status === allStatusFilter);
 
   const getNextStatus = (current: string, order: Order) => {
     // Determine if this is a seller order based on seller_id or status
@@ -98,6 +118,12 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
     onRefresh();
   };
 
+  const flowFor = (o: Order): string[] => {
+    if (o.status.startsWith("return_")) return RETURN_FLOW;
+    const isSeller = !!o.seller_id || SELLER_STATUS_FLOW.includes(o.status);
+    return isSeller ? SELLER_STATUS_FLOW : STATUS_FLOW;
+  };
+
   const Steps = ({ flow, current, labels }: { flow: string[]; current: string; labels: Record<string, string> }) => {
     const idx = flow.indexOf(current);
     return (
@@ -116,6 +142,11 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
     pending: "Pending", seller_confirmation_pending: "Seller", seller_accepted: "Seller OK", accepted: "Accepted",
     pickup: "Picked", shipped: "On the way", delivered: "Delivered",
     return_requested: "Requested", return_accepted: "Accepted", return_collected: "Collected", return_confirmed: "Finished",
+  };
+
+  const TRACK_LABELS: Record<string, string> = {
+    ...STEP_LABELS,
+    cancelled: "Cancelled",
   };
 
   const actionLabel = (next: string) =>
@@ -297,10 +328,11 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
   return (
     <>
     <Tabs defaultValue="micro">
-      <TabsList className="w-full grid grid-cols-4">
+      <TabsList className="w-full grid grid-cols-5">
         <TabsTrigger value="micro"><Warehouse className="h-4 w-4 mr-1" /> Micro ({activeMicro.length})</TabsTrigger>
         <TabsTrigger value="area"><Store className="h-4 w-4 mr-1" /> Area ({activeArea.length})</TabsTrigger>
         <TabsTrigger value="returns"><RotateCcw className="h-4 w-4 mr-1" /> Returns ({returnOrders.length})</TabsTrigger>
+        <TabsTrigger value="all"><List className="h-4 w-4 mr-1" /> All ({orders.length})</TabsTrigger>
         <TabsTrigger value="history"><History className="h-4 w-4 mr-1" /> History</TabsTrigger>
       </TabsList>
 
@@ -350,6 +382,71 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
                       <Button size="sm" className="flex-1" onClick={() => advanceReturn(o)}>
                         {next === "return_accepted" ? "Accept Return" : next === "return_collected" ? "Collected Items" : "Finish Return"}
                       </Button>
+                      <Button size="sm" variant="outline" onClick={() => setDetailOrder(o)}><Eye className="h-4 w-4 mr-1" />Details</Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="all">
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle className="text-sm text-muted-foreground">All Orders — full flow track, newest first</CardTitle>
+              <select
+                value={allStatusFilter}
+                onChange={(e) => setAllStatusFilter(e.target.value)}
+                className="text-sm border rounded-md px-2 py-1.5 bg-background text-foreground"
+              >
+                {ALL_STATUSES.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <div className="space-y-3">
+              {filteredAll.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-6">No orders</p>
+              ) : filteredAll.map((o) => {
+                const flow = flowFor(o);
+                const isReturn = o.status.startsWith("return_");
+                const inReturnFlow = isReturn && RETURN_FLOW.includes(o.status);
+                return (
+                  <div key={o.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-sm font-medium">#{o.id.slice(0, 8)}</span>
+                      <div className="flex items-center gap-2">
+                        {o.status === "cancelled" && <Badge variant="destructive">Cancelled</Badge>}
+                        {inReturnFlow && <Badge variant="outline">Return</Badge>}
+                        <Badge variant="secondary">₹{o.total}</Badge>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{o.shipping_address || "No address"}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString()}</p>
+                    {inReturnFlow ? (
+                      <Steps flow={RETURN_FLOW} current={o.status} labels={TRACK_LABELS} />
+                    ) : o.status === "cancelled" ? (
+                      <Steps flow={flow} current={o.status} labels={TRACK_LABELS} />
+                    ) : (
+                      <Steps flow={flow} current={o.status} labels={TRACK_LABELS} />
+                    )}
+                    <div className="flex gap-2 pt-1">
+                      <span className="flex-1 text-xs text-muted-foreground self-center">
+                        {o.status === "cancelled"
+                          ? "This order was cancelled"
+                          : inReturnFlow
+                          ? "Track this return in the Returns tab"
+                          : o.status === "delivered"
+                          ? "Delivered"
+                          : o.status === "seller_confirmation_pending"
+                          ? "Waiting for seller to accept"
+                          : "Track this order in the Micro / Area tab"}
+                      </span>
                       <Button size="sm" variant="outline" onClick={() => setDetailOrder(o)}><Eye className="h-4 w-4 mr-1" />Details</Button>
                     </div>
                   </div>
