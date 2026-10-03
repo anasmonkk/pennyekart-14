@@ -28,16 +28,16 @@ const NotificationToggle = () => {
     return () => { alive = false; };
   }, []);
 
-  if (on === null || on) return null;
+  if (on === null) return null;
   return (
-    <Button variant="outline" className="w-full gap-2" disabled={busy} onClick={async () => {
+    <Button variant="outline" className="w-full gap-2" disabled={busy || on} onClick={async () => {
       setBusy(true);
       const ok = await enableNotifications();
       setBusy(false);
       if (ok) { setOn(true); toast.success("Notifications turned on"); }
       else toast.info("Notifications are off. You can turn them on later in your phone settings.");
     }}>
-      <Bell className="h-4 w-4" /> Turn on notifications
+      <Bell className="h-4 w-4" /> {on ? "Notifications enabled" : "Turn on notifications"}
     </Button>
   );
 };
