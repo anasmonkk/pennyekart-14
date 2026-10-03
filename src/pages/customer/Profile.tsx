@@ -23,6 +23,7 @@ import ScratchCardWidget from "@/components/ScratchCardWidget";
 import VerifyAccountCard from "@/components/customer/VerifyAccountCard";
 import CommunityCard from "@/components/customer/CommunityCard";
 import AddressBook from "@/components/customer/AddressBook";
+import OrderDetailDialog from "@/components/OrderDetailDialog";
 import { BadgeCheck } from "lucide-react";
 
 interface Order {
@@ -32,6 +33,8 @@ interface Order {
   status: string;
   created_at: string;
   shipping_address: string | null;
+  delivery_charge?: number | null;
+  user_id?: string | null;
 }
 
 const statusSteps = ["pending", "accepted", "confirmed", "packed", "shipped", "delivered"];
