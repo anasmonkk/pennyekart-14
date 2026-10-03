@@ -23,6 +23,7 @@ import ScratchCardWidget from "@/components/ScratchCardWidget";
 import VerifyAccountCard from "@/components/customer/VerifyAccountCard";
 import CommunityCard from "@/components/customer/CommunityCard";
 import AddressBook from "@/components/customer/AddressBook";
+import OrderDetailDialog from "@/components/OrderDetailDialog";
 import { BadgeCheck } from "lucide-react";
 
 interface Order {
@@ -32,6 +33,8 @@ interface Order {
   status: string;
   created_at: string;
   shipping_address: string | null;
+  delivery_charge?: number | null;
+  user_id?: string | null;
 }
 
 const statusSteps = ["pending", "accepted", "confirmed", "packed", "shipped", "delivered"];
@@ -70,6 +73,7 @@ const Profile = () => {
   const [mobile, setMobile] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [detailOrder, setDetailOrder] = useState<Order | null>(null);
   const [activeSection, setActiveSection] = useState(initialTab);
   const [roleName, setRoleName] = useState<string | null>(null);
   const { notifications, loading: notificationsLoading, markRead } = useNotifications();
@@ -198,7 +202,7 @@ const Profile = () => {
     const currentStep = getStatusIndex(order.status);
 
     return (
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden cursor-pointer transition-shadow hover:shadow-md" onClick={() => setDetailOrder(order)}>
         <CardContent className="p-0">
           <div className="flex items-center justify-between p-4 bg-muted/30">
             <div>
@@ -227,7 +231,7 @@ const Profile = () => {
 
           <div className="flex items-center justify-between p-4">
             <p className="text-sm font-bold">₹{order.total.toFixed(2)}</p>
-            <div className="flex gap-2">
+            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
               {canCancel(order.status) && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -483,6 +487,15 @@ const Profile = () => {
             </TabsContent>
           </Tabs>
         )}
+
+        <OrderDetailDialog
+          order={detailOrder}
+          open={!!detailOrder}
+          onOpenChange={(open) => { if (!open) setDetailOrder(null); }}
+          statusLabel={(s) => statusLabels[s] || s}
+          onCancel={handleCancelOrder}
+          onRequestReturn={handleRequestReturn}
+        />
 
         {/* Addresses Section */}
         {activeSection === "addresses" && (
