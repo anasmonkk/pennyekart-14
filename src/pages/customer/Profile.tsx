@@ -488,6 +488,15 @@ const Profile = () => {
           </Tabs>
         )}
 
+        <OrderDetailDialog
+          order={detailOrder}
+          open={!!detailOrder}
+          onOpenChange={(open) => { if (!open) setDetailOrder(null); }}
+          statusLabel={(s) => statusLabels[s] || s}
+          onCancel={handleCancelOrder}
+          onRequestReturn={handleRequestReturn}
+        />
+
         {/* Addresses Section */}
         {activeSection === "addresses" && (
           <AddressBook
