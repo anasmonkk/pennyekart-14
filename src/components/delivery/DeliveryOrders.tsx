@@ -431,7 +431,7 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
                     {inReturnFlow ? (
                       <Steps flow={RETURN_FLOW} current={o.status} labels={TRACK_LABELS} />
                     ) : o.status === "cancelled" ? (
-                      <Steps flow={flowFor({ ...o, status: "pending" })} current="delivered" labels={TRACK_LABELS} />
+                      <Steps flow={flow} current={o.status} labels={TRACK_LABELS} />
                     ) : (
                       <Steps flow={flow} current={o.status} labels={TRACK_LABELS} />
                     )}
