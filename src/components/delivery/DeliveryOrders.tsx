@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Truck, History, Warehouse, Store, RotateCcw, Eye } from "lucide-react";
+import { Truck, History, Warehouse, Store, RotateCcw, Eye, List } from "lucide-react";
 import OrderDetailDialog from "@/components/OrderDetailDialog";
 
 interface Order {
@@ -118,6 +118,12 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
     onRefresh();
   };
 
+  const flowFor = (o: Order): string[] => {
+    if (o.status.startsWith("return_")) return RETURN_FLOW;
+    const isSeller = !!o.seller_id || SELLER_STATUS_FLOW.includes(o.status);
+    return isSeller ? SELLER_STATUS_FLOW : STATUS_FLOW;
+  };
+
   const Steps = ({ flow, current, labels }: { flow: string[]; current: string; labels: Record<string, string> }) => {
     const idx = flow.indexOf(current);
     return (
@@ -130,6 +136,11 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
         ))}
       </div>
     );
+  };
+
+  const TRACK_LABELS: Record<string, string> = {
+    ...STEP_LABELS,
+    cancelled: "Cancelled",
   };
 
   const STEP_LABELS: Record<string, string> = {
