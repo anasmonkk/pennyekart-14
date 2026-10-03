@@ -1190,6 +1190,7 @@ export type Database = {
           assigned_delivery_staff_id: string | null
           created_at: string
           delivery_charge: number
+          delivery_push_sent_at: string | null
           godown_id: string | null
           id: string
           is_self_delivery: boolean
@@ -1207,6 +1208,7 @@ export type Database = {
           assigned_delivery_staff_id?: string | null
           created_at?: string
           delivery_charge?: number
+          delivery_push_sent_at?: string | null
           godown_id?: string | null
           id?: string
           is_self_delivery?: boolean
@@ -1224,6 +1226,7 @@ export type Database = {
           assigned_delivery_staff_id?: string | null
           created_at?: string
           delivery_charge?: number
+          delivery_push_sent_at?: string | null
           godown_id?: string | null
           id?: string
           is_self_delivery?: boolean
@@ -2811,6 +2814,7 @@ export type Database = {
           assigned_delivery_staff_id: string | null
           created_at: string
           delivery_charge: number
+          delivery_push_sent_at: string | null
           godown_id: string | null
           id: string
           is_self_delivery: boolean
