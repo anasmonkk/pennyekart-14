@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import CustomerList from "@/components/admin/CustomerList";
 import AddAdminDialog from "@/components/admin/AddAdminDialog";
-import AdminsPanel from "@/components/admin/AdminsPanel";
+import AdminsPanel, { isAddedAdmin } from "@/components/admin/AdminsPanel";
 import { Search, ChevronLeft, ChevronRight, MoreHorizontal, Pencil, Trash2, KeyRound } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -355,7 +355,7 @@ const UsersPage = () => {
           <TabsTrigger value="admins">
             Admins
             <Badge variant="outline" className="ml-2 text-xs">
-              {users.filter(u => (u.is_super_admin || u.role_id) && u.email).length}
+              {users.filter(isAddedAdmin).length}
             </Badge>
           </TabsTrigger>
         </TabsList>
