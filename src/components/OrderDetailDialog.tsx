@@ -128,9 +128,9 @@ const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultSta
               ) : (
                 items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-3 rounded-lg border p-2">
-                    {item.image_url && (
+                    {(item.image_url || item.image) && (
                       <img
-                        src={item.image_url}
+                        src={item.image_url || item.image}
                         alt={item.name || "Product"}
                         className="h-12 w-12 rounded-md border object-cover shrink-0"
                       />
@@ -156,11 +156,91 @@ const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultSta
 
           <Separator />
 
-          {/* Total */}
-          <div className="flex items-center justify-between font-semibold">
-            <span>Total</span>
-            <span className="text-lg">₹{order.total}</span>
+          {/* Bill Details */}
+          <div>
+            <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+              <Receipt className="h-4 w-4 text-primary" />
+              Bill Details
+            </h4>
+            <div className="rounded-lg border p-3 space-y-1.5 text-sm">
+              {items.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground truncate">
+                    {item.name || "Item"} × {item.quantity || 1}
+                  </span>
+                  <span>₹{((item.price ?? 0) * (item.quantity || 1)).toFixed(2)}</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Delivery Charge</span>
+                <span>
+                  {order.delivery_charge != null && order.delivery_charge > 0
+                    ? `₹${Number(order.delivery_charge).toFixed(2)}`
+                    : "Free"}
+                </span>
+              </div>
+              <Separator className="my-1" />
+              <div className="flex items-center justify-between font-semibold">
+                <span>Grand Total</span>
+                <span className="text-base">₹{Number(order.total).toFixed(2)}</span>
+              </div>
+            </div>
           </div>
+
+          {/* Cancel / Return actions (customer view) */}
+          {(onCancel || onRequestReturn) && (
+            <>
+              <Separator />
+              <div className="flex gap-2">
+                {onCancel && CANCELLABLE.includes(order.status) && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="destructive" className="flex-1">
+                        <XCircle className="h-4 w-4 mr-1" /> Cancel Order
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Cancel Order?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to cancel this order? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>No, keep it</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { onCancel(order.id); onOpenChange(false); }}>
+                          Yes, cancel
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+                {onRequestReturn && order.status === "delivered" && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="flex-1">
+                        <RotateCcw className="h-4 w-4 mr-1" /> Request Return
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Request Return?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          A delivery/selling partner will need to confirm the return before stock is restored. Are you sure?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>No, keep it</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { onRequestReturn(order.id); onOpenChange(false); }}>
+                          Yes, request return
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
