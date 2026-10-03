@@ -177,7 +177,7 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
         const flow = isSeller ? SELLER_STATUS_FLOW : STATUS_FLOW;
         const next = getNextStatus(o.status, o);
         return (
-          <div key={o.id} className="border rounded-lg p-3 space-y-2 bg-card">
+          <div key={o.id} id={`order-${o.id}`} className="border rounded-lg p-3 space-y-2 bg-card scroll-mt-24">
             <div className="flex items-center justify-between gap-2">
               <span className="font-mono text-sm font-medium">#{o.id.slice(0, 8)}</span>
               <Badge variant="secondary">₹{o.total}</Badge>
@@ -283,7 +283,7 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
             <TableRow><TableCell colSpan={showAction ? 7 : 6} className="text-center text-muted-foreground">No orders</TableCell></TableRow>
           ) : items.map((o) => {
             return (
-              <TableRow key={o.id}>
+              <TableRow key={o.id} id={`order-${o.id}`}>
                 <TableCell className="font-mono text-xs">{o.id.slice(0, 8)}…</TableCell>
                 <TableCell>₹{o.total}</TableCell>
                 <TableCell className="text-sm max-w-[200px] truncate">{o.shipping_address ?? "—"}</TableCell>
@@ -370,7 +370,7 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
               ) : returnOrders.map((o) => {
                 const next = RETURN_FLOW[RETURN_FLOW.indexOf(o.status) + 1];
                 return (
-                  <div key={o.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                  <div key={o.id} id={`order-${o.id}`} className="border rounded-lg p-3 space-y-2 bg-card scroll-mt-24">
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-sm font-medium">#{o.id.slice(0, 8)}</span>
                       <Badge variant="secondary">₹{o.total}</Badge>
@@ -417,7 +417,7 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
                 const isReturn = o.status.startsWith("return_");
                 const inReturnFlow = isReturn && RETURN_FLOW.includes(o.status);
                 return (
-                  <div key={o.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                  <div key={o.id} id={`order-${o.id}`} className="border rounded-lg p-3 space-y-2 bg-card scroll-mt-24">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-mono text-sm font-medium">#{o.id.slice(0, 8)}</span>
                       <div className="flex items-center gap-2">

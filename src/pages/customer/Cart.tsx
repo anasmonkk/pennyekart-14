@@ -423,6 +423,8 @@ const Cart = () => {
         if (insertedOrder?.id) {
           supabase.functions.invoke("send-seller-order-push", { body: { order_id: insertedOrder.id } })
             .catch(() => {});
+          supabase.functions.invoke("send-delivery-order-push", { body: { order_id: insertedOrder.id } })
+            .catch(() => {});
         }
       }
 
