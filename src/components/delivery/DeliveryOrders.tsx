@@ -138,15 +138,15 @@ const DeliveryOrders = ({ orders, userId, onRefresh }: Props) => {
     );
   };
 
-  const TRACK_LABELS: Record<string, string> = {
-    ...STEP_LABELS,
-    cancelled: "Cancelled",
-  };
-
   const STEP_LABELS: Record<string, string> = {
     pending: "Pending", seller_confirmation_pending: "Seller", seller_accepted: "Seller OK", accepted: "Accepted",
     pickup: "Picked", shipped: "On the way", delivered: "Delivered",
     return_requested: "Requested", return_accepted: "Accepted", return_collected: "Collected", return_confirmed: "Finished",
+  };
+
+  const TRACK_LABELS: Record<string, string> = {
+    ...STEP_LABELS,
+    cancelled: "Cancelled",
   };
 
   const actionLabel = (next: string) =>
