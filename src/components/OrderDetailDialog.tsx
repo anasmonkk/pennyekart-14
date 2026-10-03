@@ -3,7 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Package, MapPin, Calendar, Navigation } from "lucide-react";
+import { Package, MapPin, Calendar, Navigation, XCircle, RotateCcw, Receipt } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 
 interface OrderItem {
@@ -24,6 +28,7 @@ interface Order {
   items: any;
   user_id?: string | null;
   seller_id?: string | null;
+  delivery_charge?: number | null;
 }
 
 interface Props {
@@ -31,11 +36,15 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   statusLabel?: (status: string) => string;
+  onCancel?: (orderId: string) => void;
+  onRequestReturn?: (orderId: string) => void;
 }
 
 const defaultStatusLabel = (s: string) => s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
-const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultStatusLabel }: Props) => {
+const CANCELLABLE = ["pending", "accepted", "confirmed", "packed", "shipped"];
+
+const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultStatusLabel, onCancel, onRequestReturn }: Props) => {
   const [customerLocation, setCustomerLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
 
