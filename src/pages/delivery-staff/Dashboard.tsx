@@ -10,6 +10,7 @@ import DeliveryStats from "@/components/delivery/DeliveryStats";
 import DeliveryOrders from "@/components/delivery/DeliveryOrders";
 import DeliveryWallet from "@/components/delivery/DeliveryWallet";
 import DeliveryStock from "@/components/delivery/DeliveryStock";
+import NotificationToggle from "@/components/NotificationToggle";
 import NewOrderNotification from "@/components/NewOrderNotification";
 
 interface Order {
@@ -104,6 +105,7 @@ const DeliveryStaffDashboard = () => {
       </header>
 
       <main className="mx-auto max-w-5xl p-4 space-y-6">
+        <NotificationToggle />
         <DeliveryStats
           pendingCount={pendingCount}
           deliveredToday={deliveredToday}
