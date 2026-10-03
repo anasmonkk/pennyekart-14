@@ -14,7 +14,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import CustomerList from "@/components/admin/CustomerList";
 import AddAdminDialog from "@/components/admin/AddAdminDialog";
 import AdminsPanel, { isAddedAdmin } from "@/components/admin/AdminsPanel";
-import { Search, ChevronLeft, ChevronRight, MoreHorizontal, Pencil, Trash2, KeyRound } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, MoreHorizontal, Pencil, Trash2, KeyRound, Download } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -331,6 +331,47 @@ const UsersPage = () => {
       case "selling_partner": return "secondary";
       default: return "outline";
     }
+  };
+
+  const exportCsv = () => {
+    const rows = filterType === "admins" ? users.filter(isAddedAdmin) : filteredUsers;
+    if (rows.length === 0) {
+      toast({ title: "Nothing to export", description: "No users match the current filters." });
+      return;
+    }
+    const roleName = (id: string | null) => (id ? roles.find((r) => r.id === id)?.name ?? "" : "");
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const headers = [
+      "Name", "Customer ID", "Email", "Mobile", "User Type", "Seller Type",
+      "District", "Local Body", "Ward", "Approved", "Blocked", "Role",
+      "Orders", "Total Spent", "Wallet Balance", "Joined On", "Last Login",
+    ];
+    const lines = rows.map((u) => {
+      const o = orderSummaries.get(u.user_id);
+      const w = walletSummaries.get(u.user_id);
+      return [
+        u.full_name, u.customer_id, u.email, u.mobile_number,
+        USER_TYPE_LABELS[u.user_type] ?? u.user_type,
+        u.user_type === "selling_partner" ? (u.seller_type === "utility" ? "Utility Seller" : "Normal Seller") : "",
+        u.district_name, u.local_body_name, u.ward_number,
+        u.is_approved ? "Yes" : "No", u.is_blocked ? "Yes" : "No", roleName(u.role_id),
+        o?.order_count ?? 0, o?.total_spent ?? 0, w?.balance ?? 0,
+        u.created_at ? new Date(u.created_at).toLocaleString() : "",
+        u.last_login_at ? new Date(u.last_login_at).toLocaleString() : "",
+      ].map(esc).join(",");
+    });
+    const csv = "\uFEFF" + [headers.join(","), ...lines].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `users_${filterType}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Export ready", description: `${rows.length} users exported to CSV.` });
   };
 
   const otherColSpan = isSuperAdmin ? 8 : 7;
