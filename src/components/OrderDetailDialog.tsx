@@ -17,6 +17,7 @@ interface OrderItem {
   price?: number;
   mrp?: number;
   image_url?: string;
+  image?: string;
 }
 
 interface Order {
