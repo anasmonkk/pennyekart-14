@@ -75,6 +75,7 @@ const DeliveryOrders = ({ orders, userId, onRefresh, quickFilter }: Props) => {
     { value: "all", label: "All statuses" },
     { value: "seller_confirmation_pending", label: "Waiting for seller" },
     { value: "seller_accepted", label: "Seller accepted" },
+    { value: "pickup_pending", label: "Pickup pending" },
     { value: "pending", label: "Pending" },
     { value: "accepted", label: "Accepted" },
     { value: "pickup", label: "Picked up" },
@@ -87,7 +88,12 @@ const DeliveryOrders = ({ orders, userId, onRefresh, quickFilter }: Props) => {
     { value: "return_confirmed", label: "Return finished" },
   ];
   const allSorted = [...orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  const filteredAll = allStatusFilter === "all" ? allSorted : allSorted.filter((o) => o.status === allStatusFilter);
+  const PICKUP_PENDING_STATUSES = ["pending", "seller_accepted", "accepted"];
+  const filteredAll = allStatusFilter === "all"
+    ? allSorted
+    : allStatusFilter === "pickup_pending"
+    ? allSorted.filter((o) => PICKUP_PENDING_STATUSES.includes(o.status))
+    : allSorted.filter((o) => o.status === allStatusFilter);
 
   const getNextStatus = (current: string, order: Order) => {
     // Determine if this is a seller order based on seller_id or status
