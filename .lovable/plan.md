@@ -38,3 +38,17 @@ Customer places order -> order saved (staff auto-assigned) -> send-delivery-orde
 
 ## Not covered
 - Re-assigning orders to a different staff member. No such feature exists today. If one is added later, it can call the same function.
+
+## Also: delivery portal keeps asking for login
+Problem: after a refresh, swiping back, or reopening the app, delivery staff have to enter their mobile number and password again.
+
+Likely causes, confirmed in code:
+- The delivery (and seller) login page never checks whether someone is already signed in, so it always shows the form, even when a saved sign-in exists.
+- The dashboard guard sends staff to the login page if their profile is briefly unavailable while it loads.
+
+Fix:
+- `PartnerLogin.tsx`: if a saved sign-in exists and the profile matches this portal and is approved, go straight to the dashboard.
+- `ProtectedPartnerRoute.tsx`: show "Loading..." while the profile is still being fetched, instead of redirecting.
+- `useAuth.tsx`: keep the loading state until the profile fetch finishes, both on app start and on sign-in events.
+- Sign-in is already saved on the device, so no change is needed there. Logout still clears it.
+- Test: sign in, refresh, and confirm the dashboard opens without asking again. Then reopen `/delivery-staff/login` and confirm it jumps to the dashboard.
