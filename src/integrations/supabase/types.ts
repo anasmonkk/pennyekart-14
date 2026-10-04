@@ -2786,6 +2786,7 @@ export type Database = {
           unmatched_items: number
         }[]
       }
+      get_delivery_push_secret: { Args: never; Returns: string }
       get_my_community: {
         Args: never
         Returns: {
