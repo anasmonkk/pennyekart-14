@@ -54,11 +54,20 @@ Deno.serve(async (req) => {
     if (!UUID.test(orderId)) return json({ error: "Invalid order_id" }, 400);
 
     const { data: order, error: oErr } = await sb.from("orders")
-      .select("id, user_id, assigned_delivery_staff_id, created_at, delivery_push_sent_at").eq("id", orderId).maybeSingle();
+      .select("id, user_id, seller_id, status, is_self_delivery, assigned_delivery_staff_id, created_at, delivery_push_sent_at").eq("id", orderId).maybeSingle();
     if (oErr) throw oErr;
-    if (!order || order.user_id !== userId) return json({ error: "Order not found" }, 404);
+    if (!order) return json({ error: "Order not found" }, 404);
+    // Seller-product orders: delivery staff are notified only after the seller accepts.
+    const isSellerOrder = !!order.seller_id;
+    if (isSellerOrder) {
+      if (order.seller_id !== userId) return json({ error: "Order not found" }, 404);
+      if (order.status !== "seller_accepted") return json({ sent: false, reason: "waiting_for_seller" });
+      if (order.is_self_delivery) return json({ sent: false, reason: "self_delivery" });
+    } else {
+      if (order.user_id !== userId) return json({ error: "Order not found" }, 404);
+      if (Date.now() - new Date(order.created_at).getTime() > 15 * 60 * 1000) return json({ sent: false, reason: "too_old" });
+    }
     if (order.delivery_push_sent_at) return json({ sent: false, reason: "already_sent" });
-    if (Date.now() - new Date(order.created_at).getTime() > 15 * 60 * 1000) return json({ sent: false, reason: "too_old" });
 
     if (!order.assigned_delivery_staff_id) { console.log("delivery push: no staff assigned"); return json({ sent: false, reason: "no_staff_assigned" }); }
 

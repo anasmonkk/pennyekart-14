@@ -138,6 +138,9 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
     const ok = await updateStatus(orderId, newStatus);
     if (ok) {
       setDismissedIds((prev) => new Set([...prev, orderId]));
+      if (role === "seller") {
+        supabase.functions.invoke("send-delivery-order-push", { body: { order_id: orderId } }).catch(() => {});
+      }
       onAccept?.(orderId);
     }
   };
