@@ -126,6 +126,29 @@ const DeliveryStaffDashboard = () => {
           assignedWards={assignedWards}
         />
 
+        {!loading && (
+          <div className="grid grid-cols-3 gap-3">
+            {quickCards.map(({ label, count, icon: Icon, status }) => (
+              <button
+                key={label}
+                onClick={() => setQuickFilter({ status, nonce: Date.now() })}
+                className={`flex flex-col items-center gap-1.5 rounded-xl border bg-card p-3 text-center transition-colors hover:bg-accent ${count > 0 ? "border-primary/40" : "opacity-70"}`}
+              >
+                <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+                  <Icon className="h-5 w-5 text-primary" />
+                  {count > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                      {count}
+                    </span>
+                  )}
+                </span>
+                <span className="text-[11px] font-medium leading-tight text-foreground">{label}</span>
+                <span className="text-xs text-muted-foreground">{count} order{count === 1 ? "" : "s"}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {loading ? (
           <p className="text-muted-foreground">Loading...</p>
         ) : user ? (
@@ -136,7 +159,7 @@ const DeliveryStaffDashboard = () => {
               <TabsTrigger value="stock"><Package className="h-4 w-4 mr-1" /> Stock</TabsTrigger>
             </TabsList>
             <TabsContent value="orders">
-              <DeliveryOrders orders={orders} userId={user.id} onRefresh={fetchData} />
+              <DeliveryOrders orders={orders} userId={user.id} onRefresh={fetchData} quickFilter={quickFilter} />
             </TabsContent>
             <TabsContent value="wallet">
               <DeliveryWallet
