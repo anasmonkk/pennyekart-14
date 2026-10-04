@@ -829,6 +829,8 @@ const SellingPartnerDashboard = () => {
                                           toast({ title: "Error", description: error.message, variant: "destructive" });
                                         } else {
                                           toast({ title: "Order accepted!" });
+                                          // Now notify the assigned delivery staff (fire-and-forget).
+                                          supabase.functions.invoke("send-delivery-order-push", { body: { order_id: o.id } }).catch(() => {});
                                           fetchOrders(products);
                                         }
                                       }}>
