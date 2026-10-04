@@ -66,6 +66,12 @@ const PartnerLogin = ({ userType, title, dashboardPath, signupPath, forgotPath }
     setLoading(false);
   };
 
+  // While a saved login is being restored, don't flash the form.
+  const restoring = authLoading || (user && !profile);
+  if (restoring) {
+    return <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">Loading...</div>;
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">

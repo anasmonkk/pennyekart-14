@@ -49,22 +49,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfile(null);
   }, []);
 
+  // Retries on slow/flaky networks (app reopen) so a saved login isn't treated as signed out.
   const fetchProfile = useCallback(async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", userId)
-        .single();
-      if (error) {
+    const delays = [0, 800, 2000, 4000];
+    for (let i = 0; i < delays.length; i++) {
+      if (delays[i]) await new Promise((r) => setTimeout(r, delays[i]));
+      if (!mountedRef.current) return;
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (!error) {
+          if (mountedRef.current) setProfile(data as unknown as Profile | null);
+          return;
+        }
         console.error("Failed to fetch profile:", error);
-        if (mountedRef.current) setProfile(null);
-        return;
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
       }
-      if (mountedRef.current) setProfile(data as unknown as Profile | null);
-    } catch (err) {
-      console.error("Failed to fetch profile:", err);
-      if (mountedRef.current) setProfile(null);
     }
   }, []);
 
