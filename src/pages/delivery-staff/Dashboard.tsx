@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Truck, Wallet, Package } from "lucide-react";
+import { LogOut, Truck, Wallet, Package, PackageOpen, MapPin } from "lucide-react";
 import logo from "@/assets/logo.png";
 import DeliveryStats from "@/components/delivery/DeliveryStats";
 import DeliveryOrders from "@/components/delivery/DeliveryOrders";
@@ -33,6 +33,7 @@ const DeliveryStaffDashboard = () => {
   const [deliveryType, setDeliveryType] = useState<"fixed" | "part_time">("fixed");
   const [assignedWards, setAssignedWards] = useState<{ local_body_name: string; ward_number: number; local_body_id?: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quickFilter, setQuickFilter] = useState<{ status: string; nonce: number } | null>(null);
 
   useEffect(() => {
     if (!focusOrderId || loading) return;
@@ -85,6 +86,15 @@ const DeliveryStaffDashboard = () => {
 
   const pendingCount = orders.filter((o) => !["delivered", "cancelled", "return_requested", "return_accepted", "return_collected", "return_confirmed"].includes(o.status)).length;
   const deliveredToday = orders.filter((o) => o.status === "delivered" && new Date(o.created_at).toDateString() === new Date().toDateString()).length;
+  const pickupPending = orders.filter((o) => ["pending", "seller_accepted", "accepted"].includes(o.status)).length;
+  const shipPending = orders.filter((o) => o.status === "pickup").length;
+  const deliveryPending = orders.filter((o) => o.status === "shipped").length;
+
+  const quickCards = [
+    { label: "Pickup Pending", count: pickupPending, icon: PackageOpen, status: "pickup_pending" },
+    { label: "Ship Pending", count: shipPending, icon: Truck, status: "pickup" },
+    { label: "Delivery Pending", count: deliveryPending, icon: MapPin, status: "shipped" },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -116,6 +126,29 @@ const DeliveryStaffDashboard = () => {
           assignedWards={assignedWards}
         />
 
+        {!loading && (
+          <div className="grid grid-cols-3 gap-3">
+            {quickCards.map(({ label, count, icon: Icon, status }) => (
+              <button
+                key={label}
+                onClick={() => setQuickFilter({ status, nonce: Date.now() })}
+                className={`flex flex-col items-center gap-1.5 rounded-xl border bg-card p-3 text-center transition-colors hover:bg-accent ${count > 0 ? "border-primary/40" : "opacity-70"}`}
+              >
+                <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+                  <Icon className="h-5 w-5 text-primary" />
+                  {count > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                      {count}
+                    </span>
+                  )}
+                </span>
+                <span className="text-[11px] font-medium leading-tight text-foreground">{label}</span>
+                <span className="text-xs text-muted-foreground">{count} order{count === 1 ? "" : "s"}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {loading ? (
           <p className="text-muted-foreground">Loading...</p>
         ) : user ? (
@@ -126,7 +159,7 @@ const DeliveryStaffDashboard = () => {
               <TabsTrigger value="stock"><Package className="h-4 w-4 mr-1" /> Stock</TabsTrigger>
             </TabsList>
             <TabsContent value="orders">
-              <DeliveryOrders orders={orders} userId={user.id} onRefresh={fetchData} />
+              <DeliveryOrders orders={orders} userId={user.id} onRefresh={fetchData} quickFilter={quickFilter} />
             </TabsContent>
             <TabsContent value="wallet">
               <DeliveryWallet
