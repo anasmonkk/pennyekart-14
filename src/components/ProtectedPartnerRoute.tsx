@@ -11,7 +11,8 @@ interface Props {
 const ProtectedPartnerRoute = ({ children, userType, loginPath }: Props) => {
   const { user, profile, loading } = useAuth();
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  // Wait for the profile too: a saved session briefly has user but no profile yet.
+  if (loading || (user && !profile)) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   if (!user) return <Navigate to={loginPath} replace />;
   if (profile?.user_type !== userType) return <Navigate to={loginPath} replace />;
   if (!profile?.is_approved) return <Navigate to={loginPath} replace />;
