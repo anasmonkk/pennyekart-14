@@ -41,13 +41,24 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const sb = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
-    // Trusted caller: the signed-in customer who owns the order.
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
-    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
-    const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-    const userId = claims?.claims?.sub as string | undefined;
-    if (!userId) return json({ error: "Unauthorized" }, 401);
+    // Trusted callers: the database trigger (internal secret) or the signed-in customer/seller.
+    let internal = false;
+    const internalHeader = req.headers.get("x-internal-secret");
+    if (internalHeader) {
+      const { data: secret } = await sb.rpc("get_delivery_push_secret" as never);
+      internal = !!secret && secret === internalHeader;
+      if (!internal) return json({ error: "Unauthorized" }, 401);
+    }
+    let userId: string | undefined;
+    if (!internal) {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+      const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
+      const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
+      userId = claims?.claims?.sub as string | undefined;
+      if (!userId) return json({ error: "Unauthorized" }, 401);
+    }
+    console.log("delivery push request", { internal });
 
     const body = await req.json().catch(() => ({}));
     const orderId = String(body.order_id ?? "");
@@ -60,11 +71,11 @@ Deno.serve(async (req) => {
     // Seller-product orders: delivery staff are notified only after the seller accepts.
     const isSellerOrder = !!order.seller_id;
     if (isSellerOrder) {
-      if (order.seller_id !== userId) return json({ error: "Order not found" }, 404);
+      if (!internal && order.seller_id !== userId) return json({ error: "Order not found" }, 404);
       if (order.status !== "seller_accepted") return json({ sent: false, reason: "waiting_for_seller" });
       if (order.is_self_delivery) return json({ sent: false, reason: "self_delivery" });
     } else {
-      if (order.user_id !== userId) return json({ error: "Order not found" }, 404);
+      if (!internal && order.user_id !== userId) return json({ error: "Order not found" }, 404);
       if (Date.now() - new Date(order.created_at).getTime() > 15 * 60 * 1000) return json({ sent: false, reason: "too_old" });
     }
     if (order.delivery_push_sent_at) return json({ sent: false, reason: "already_sent" });
