@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Truck, Wallet, Package } from "lucide-react";
+import { LogOut, Truck, Wallet, Package, PackageOpen, MapPin } from "lucide-react";
 import logo from "@/assets/logo.png";
 import DeliveryStats from "@/components/delivery/DeliveryStats";
 import DeliveryOrders from "@/components/delivery/DeliveryOrders";
@@ -33,6 +33,7 @@ const DeliveryStaffDashboard = () => {
   const [deliveryType, setDeliveryType] = useState<"fixed" | "part_time">("fixed");
   const [assignedWards, setAssignedWards] = useState<{ local_body_name: string; ward_number: number; local_body_id?: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quickFilter, setQuickFilter] = useState<{ status: string; nonce: number } | null>(null);
 
   useEffect(() => {
     if (!focusOrderId || loading) return;
@@ -85,6 +86,15 @@ const DeliveryStaffDashboard = () => {
 
   const pendingCount = orders.filter((o) => !["delivered", "cancelled", "return_requested", "return_accepted", "return_collected", "return_confirmed"].includes(o.status)).length;
   const deliveredToday = orders.filter((o) => o.status === "delivered" && new Date(o.created_at).toDateString() === new Date().toDateString()).length;
+  const pickupPending = orders.filter((o) => ["pending", "seller_accepted", "accepted"].includes(o.status)).length;
+  const shipPending = orders.filter((o) => o.status === "pickup").length;
+  const deliveryPending = orders.filter((o) => o.status === "shipped").length;
+
+  const quickCards = [
+    { label: "Pickup Pending", count: pickupPending, icon: PackageOpen, status: "pickup_pending" },
+    { label: "Ship Pending", count: shipPending, icon: Truck, status: "pickup" },
+    { label: "Delivery Pending", count: deliveryPending, icon: MapPin, status: "shipped" },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
