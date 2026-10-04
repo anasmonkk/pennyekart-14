@@ -1,5 +1,6 @@
 import LegalLinks from "@/components/LegalLinks";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,14 @@ const PartnerLogin = ({ userType, title, dashboardPath, signupPath, forgotPath }
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, profile, loading: authLoading } = useAuth();
+
+  // Already signed in on this device → skip the form.
+  useEffect(() => {
+    if (!authLoading && user && profile?.user_type === userType && profile.is_approved) {
+      navigate(dashboardPath, { replace: true });
+    }
+  }, [authLoading, user, profile, userType, dashboardPath, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

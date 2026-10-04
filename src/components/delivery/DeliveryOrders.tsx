@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,6 +45,21 @@ const DeliveryOrders = ({ orders, userId, onRefresh, quickFilter }: Props) => {
     setAllStatusFilter(quickFilter.status);
     setTab("all");
   }, [quickFilter?.nonce]);
+
+  // Push tap deep link: /delivery-staff/dashboard?order=<id>
+  const [searchParams, setSearchParams] = useSearchParams();
+  const orderParam = searchParams.get("order");
+  useEffect(() => {
+    if (!orderParam) return;
+    const found = orders.find((o) => o.id === orderParam);
+    if (!found) return;
+    setTab("all");
+    setDetailOrder(found);
+    const next = new URLSearchParams(searchParams);
+    next.delete("order");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderParam, orders]);
 
   // Separate orders by godown type
   const isAreaGodownOrder = (o: Order) => 
