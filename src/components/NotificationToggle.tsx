@@ -24,8 +24,30 @@ const NotificationToggle = () => {
 
   useEffect(() => {
     let alive = true;
-    isGranted().then((g) => { if (alive) setOn(g); });
-    return () => { alive = false; };
+    let resumeListener: { remove: () => Promise<void> } | null = null;
+    const refreshPermission = () => {
+      void isGranted().then((granted) => { if (alive) setOn(granted); });
+    };
+    refreshPermission();
+
+    if (isNativeApp()) {
+      void import("@capacitor/app").then(({ App }) => App.addListener("resume", refreshPermission)).then((listener) => {
+        if (alive) resumeListener = listener;
+        else void listener.remove();
+      }).catch(() => {});
+    } else {
+      window.addEventListener("focus", refreshPermission);
+      document.addEventListener("visibilitychange", refreshPermission);
+    }
+
+    return () => {
+      alive = false;
+      if (resumeListener) void resumeListener.remove();
+      if (!isNativeApp()) {
+        window.removeEventListener("focus", refreshPermission);
+        document.removeEventListener("visibilitychange", refreshPermission);
+      }
+    };
   }, []);
 
   if (on === null) return null;

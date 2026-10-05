@@ -7,6 +7,7 @@ const SellingPartnerLogin = () => (
     dashboardPath="/selling-partner/dashboard"
     signupPath="/selling-partner/signup"
     forgotPath="/selling-partner/forgot-password"
+    rememberMobile
   />
 );
 
