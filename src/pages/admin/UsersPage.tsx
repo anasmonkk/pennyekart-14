@@ -51,6 +51,7 @@ interface LocalBody {
   name: string;
   body_type: string;
   district_id: string;
+  ward_count?: number | null;
 }
 
 interface District {
@@ -89,7 +90,12 @@ const UsersPage = () => {
 
   // Edit dialog state
   const [editUser, setEditUser] = useState<Profile | null>(null);
-  const [editForm, setEditForm] = useState({ full_name: "", email: "", mobile_number: "" });
+  const [editForm, setEditForm] = useState({
+    full_name: "", email: "", mobile_number: "",
+    user_type: "customer", seller_type: "normal", role_id: "none",
+    is_approved: false, is_blocked: false, is_super_admin: false,
+    local_body_id: "none", ward_number: "none",
+  });
   const [editSaving, setEditSaving] = useState(false);
 
   // Delete dialog state
@@ -105,7 +111,7 @@ const UsersPage = () => {
     const [usersRes, rolesRes, localBodiesRes, districtsRes, ordersRes, walletsRes] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("roles").select("*"),
-      supabase.from("locations_local_bodies").select("id, name, body_type, district_id"),
+      supabase.from("locations_local_bodies").select("id, name, body_type, district_id, ward_count"),
       supabase.from("locations_districts").select("id, name"),
       supabase.from("orders").select("user_id, total, status, created_at"),
       supabase.from("customer_wallets").select("customer_user_id, balance"),
@@ -262,6 +268,14 @@ const UsersPage = () => {
       full_name: user.full_name ?? "",
       email: user.email ?? "",
       mobile_number: user.mobile_number ?? "",
+      user_type: user.user_type ?? "customer",
+      seller_type: user.seller_type ?? "normal",
+      role_id: user.role_id ?? "none",
+      is_approved: user.is_approved,
+      is_blocked: user.is_blocked,
+      is_super_admin: user.is_super_admin,
+      local_body_id: user.local_body_id ?? "none",
+      ward_number: user.ward_number != null ? String(user.ward_number) : "none",
     });
   };
 
@@ -272,6 +286,14 @@ const UsersPage = () => {
       full_name: editForm.full_name || null,
       email: editForm.email || null,
       mobile_number: editForm.mobile_number || null,
+      user_type: editForm.user_type,
+      seller_type: editForm.user_type === "selling_partner" ? editForm.seller_type : null,
+      role_id: editForm.role_id === "none" ? null : editForm.role_id,
+      is_approved: editForm.is_approved,
+      is_blocked: editForm.is_blocked,
+      is_super_admin: editForm.is_super_admin,
+      local_body_id: editForm.local_body_id === "none" ? null : editForm.local_body_id,
+      ward_number: editForm.ward_number === "none" ? null : Number(editForm.ward_number),
     }).eq("user_id", editUser.user_id);
     setEditSaving(false);
     if (error) {
@@ -647,7 +669,7 @@ const UsersPage = () => {
 
       {/* Edit User Dialog */}
       <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
           </DialogHeader>
@@ -656,13 +678,90 @@ const UsersPage = () => {
               <Label>Full Name</Label>
               <Input value={editForm.full_name} onChange={(e) => setEditForm(f => ({ ...f, full_name: e.target.value }))} />
             </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" value={editForm.email} onChange={(e) => setEditForm(f => ({ ...f, email: e.target.value }))} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" value={editForm.email} onChange={(e) => setEditForm(f => ({ ...f, email: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Mobile Number</Label>
+                <Input value={editForm.mobile_number} onChange={(e) => setEditForm(f => ({ ...f, mobile_number: e.target.value }))} />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Mobile Number</Label>
-              <Input value={editForm.mobile_number} onChange={(e) => setEditForm(f => ({ ...f, mobile_number: e.target.value }))} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>User Type</Label>
+                <Select value={editForm.user_type} onValueChange={(v) => setEditForm(f => ({ ...f, user_type: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="customer">Customer</SelectItem>
+                    <SelectItem value="delivery_staff">Delivery Staff</SelectItem>
+                    <SelectItem value="selling_partner">Selling Partner</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {editForm.user_type === "selling_partner" && (
+                <div className="space-y-2">
+                  <Label>Seller Type</Label>
+                  <Select value={editForm.seller_type} onValueChange={(v) => setEditForm(f => ({ ...f, seller_type: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal">Normal Seller</SelectItem>
+                      <SelectItem value="utility">Utility Seller</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Select value={editForm.role_id} onValueChange={(v) => setEditForm(f => ({ ...f, role_id: v }))} disabled={!isSuperAdmin}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No role</SelectItem>
+                    {roles.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Panchayath / Municipality</Label>
+                <Select value={editForm.local_body_id} onValueChange={(v) => setEditForm(f => ({ ...f, local_body_id: v, ward_number: "none" }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {localBodies.map((lb) => <SelectItem key={lb.id} value={lb.id}>{lb.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Ward</Label>
+                <Select value={editForm.ward_number} onValueChange={(v) => setEditForm(f => ({ ...f, ward_number: v }))} disabled={editForm.local_body_id === "none"}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Ward</SelectItem>
+                    {Array.from({ length: localBodies.find(lb => lb.id === editForm.local_body_id)?.ward_count ?? 0 }, (_, i) => i + 1).map((w) => (
+                      <SelectItem key={w} value={String(w)}>Ward {w}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-6 pt-1">
+              <div className="flex items-center gap-2">
+                <Switch checked={editForm.is_approved} onCheckedChange={(v) => setEditForm(f => ({ ...f, is_approved: v }))} />
+                <Label>Approved</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={editForm.is_blocked} onCheckedChange={(v) => setEditForm(f => ({ ...f, is_blocked: v }))} />
+                <Label>Blocked</Label>
+              </div>
+              {isSuperAdmin && (
+                <div className="flex items-center gap-2">
+                  <Switch checked={editForm.is_super_admin} onCheckedChange={(v) => setEditForm(f => ({ ...f, is_super_admin: v }))} />
+                  <Label>Super Admin</Label>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
