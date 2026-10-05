@@ -1,5 +1,9 @@
 # Roadmap
 
+## Dedicated selling-partner management
+- [ ] Expand the standalone admin area to include partner profile/business details, performance, products, wallet, and coverage in one place.
+- [ ] Confirm all admin links point to the standalone partner area, outside Users.
+
 ## Selling partner sign-in and notifications
 - [x] Keep selling-partner sign-in restored after reopening; remember the mobile number without saving the password.
 - [x] Refresh the notification permission display when the app resumes.
