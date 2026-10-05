@@ -3,8 +3,13 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Truck, Wallet, Package, PackageOpen, MapPin } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { LogOut, Truck, Wallet, Package, PackageOpen, MapPin, User } from "lucide-react";
 import logo from "@/assets/logo.png";
 import DeliveryStats from "@/components/delivery/DeliveryStats";
 import DeliveryOrders from "@/components/delivery/DeliveryOrders";
@@ -34,6 +39,41 @@ const DeliveryStaffDashboard = () => {
   const [assignedWards, setAssignedWards] = useState<{ local_body_name: string; ward_number: number; local_body_id?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [quickFilter, setQuickFilter] = useState<{ status: string; nonce: number } | null>(null);
+  const { toast } = useToast();
+  const [localBodies, setLocalBodies] = useState<{ id: string; name: string; ward_count: number }[]>([]);
+  const [profileForm, setProfileForm] = useState({ full_name: "", mobile_number: "", local_body_id: "", ward_number: "" });
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  useEffect(() => {
+    supabase.from("locations_local_bodies").select("id, name, ward_count").eq("is_active", true).order("name")
+      .then(({ data }) => setLocalBodies((data as { id: string; name: string; ward_count: number }[]) ?? []));
+  }, []);
+
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({
+        full_name: profile.full_name ?? "",
+        mobile_number: (profile as any).mobile_number ?? "",
+        local_body_id: (profile as any).local_body_id ?? "",
+        ward_number: (profile as any).ward_number ? String((profile as any).ward_number) : "",
+      });
+    }
+  }, [profile]);
+
+  const saveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setProfileSaving(true);
+    const { error } = await supabase.from("profiles").update({
+      full_name: profileForm.full_name.trim() || null,
+      mobile_number: profileForm.mobile_number.trim() || null,
+      local_body_id: profileForm.local_body_id || null,
+      ward_number: profileForm.ward_number ? Number(profileForm.ward_number) : null,
+    }).eq("user_id", user.id);
+    setProfileSaving(false);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else toast({ title: "Profile updated successfully!" });
+  };
 
   useEffect(() => {
     if (!focusOrderId || loading) return;
@@ -157,6 +197,7 @@ const DeliveryStaffDashboard = () => {
               <TabsTrigger value="orders"><Truck className="h-4 w-4 mr-1" /> Orders</TabsTrigger>
               <TabsTrigger value="wallet"><Wallet className="h-4 w-4 mr-1" /> Wallet</TabsTrigger>
               <TabsTrigger value="stock"><Package className="h-4 w-4 mr-1" /> Stock</TabsTrigger>
+              <TabsTrigger value="profile"><User className="h-4 w-4 mr-1" /> Profile</TabsTrigger>
             </TabsList>
             <TabsContent value="orders">
               <DeliveryOrders orders={orders} userId={user.id} onRefresh={fetchData} quickFilter={quickFilter} />
@@ -171,6 +212,48 @@ const DeliveryStaffDashboard = () => {
             </TabsContent>
             <TabsContent value="stock">
               <DeliveryStock userId={user.id} assignedWards={assignedWards} />
+            </TabsContent>
+            <TabsContent value="profile">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><User className="h-5 w-5" /> My Profile</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={saveProfile} className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="dp_name">Full Name</Label>
+                      <Input id="dp_name" value={profileForm.full_name} onChange={(e) => setProfileForm((f) => ({ ...f, full_name: e.target.value }))} maxLength={100} />
+                    </div>
+                    <div>
+                      <Label htmlFor="dp_mobile">Mobile Number</Label>
+                      <Input id="dp_mobile" type="tel" value={profileForm.mobile_number} onChange={(e) => setProfileForm((f) => ({ ...f, mobile_number: e.target.value.replace(/\D/g, "").slice(0, 10) }))} maxLength={10} />
+                    </div>
+                    <div>
+                      <Label>Panchayath / Municipality</Label>
+                      <Select value={profileForm.local_body_id} onValueChange={(v) => setProfileForm((f) => ({ ...f, local_body_id: v, ward_number: "" }))}>
+                        <SelectTrigger><SelectValue placeholder="Select panchayath" /></SelectTrigger>
+                        <SelectContent>
+                          {localBodies.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Ward</Label>
+                      <Select value={profileForm.ward_number} onValueChange={(v) => setProfileForm((f) => ({ ...f, ward_number: v }))} disabled={!profileForm.local_body_id}>
+                        <SelectTrigger><SelectValue placeholder="Select ward" /></SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: localBodies.find((l) => l.id === profileForm.local_body_id)?.ward_count ?? 0 }, (_, i) => i + 1).map((w) => (
+                            <SelectItem key={w} value={String(w)}>Ward {w}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Button type="submit" disabled={profileSaving}>{profileSaving ? "Saving..." : "Save Profile"}</Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         ) : null}
