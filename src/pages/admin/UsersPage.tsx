@@ -51,6 +51,7 @@ interface LocalBody {
   name: string;
   body_type: string;
   district_id: string;
+  ward_count?: number | null;
 }
 
 interface District {
@@ -89,7 +90,12 @@ const UsersPage = () => {
 
   // Edit dialog state
   const [editUser, setEditUser] = useState<Profile | null>(null);
-  const [editForm, setEditForm] = useState({ full_name: "", email: "", mobile_number: "" });
+  const [editForm, setEditForm] = useState({
+    full_name: "", email: "", mobile_number: "",
+    user_type: "customer", seller_type: "normal", role_id: "none",
+    is_approved: false, is_blocked: false, is_super_admin: false,
+    local_body_id: "none", ward_number: "none",
+  });
   const [editSaving, setEditSaving] = useState(false);
 
   // Delete dialog state
@@ -105,7 +111,7 @@ const UsersPage = () => {
     const [usersRes, rolesRes, localBodiesRes, districtsRes, ordersRes, walletsRes] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("roles").select("*"),
-      supabase.from("locations_local_bodies").select("id, name, body_type, district_id"),
+      supabase.from("locations_local_bodies").select("id, name, body_type, district_id, ward_count"),
       supabase.from("locations_districts").select("id, name"),
       supabase.from("orders").select("user_id, total, status, created_at"),
       supabase.from("customer_wallets").select("customer_user_id, balance"),
