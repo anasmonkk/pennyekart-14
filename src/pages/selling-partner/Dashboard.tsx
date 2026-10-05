@@ -123,12 +123,14 @@ const SellingPartnerDashboard = () => {
 
   // Profile settings state
   const [profileForm, setProfileForm] = useState({
+    full_name: "", mobile_number: "", local_body_id: "", ward_number: "",
     company_name: "", gst_number: "",
     business_address: "", business_city: "", business_state: "", business_pincode: "",
     business_phone: "", business_email: "",
     bank_account_name: "", bank_account_number: "", bank_ifsc: "",
   });
   const [profileLoading, setProfileLoading] = useState(false);
+  const [localBodies, setLocalBodies] = useState<{ id: string; name: string; ward_count: number }[]>([]);
 
   // Analytics state
   const [analytics, setAnalytics] = useState<{
@@ -284,9 +286,11 @@ const SellingPartnerDashboard = () => {
 
   const fetchProfileSettings = async () => {
     if (!user) return;
-    const { data } = await supabase.from("profiles").select("company_name, gst_number, business_address, business_city, business_state, business_pincode, business_phone, business_email, bank_account_name, bank_account_number, bank_ifsc").eq("user_id", user.id).single();
+    const { data } = await supabase.from("profiles").select("full_name, mobile_number, local_body_id, ward_number, company_name, gst_number, business_address, business_city, business_state, business_pincode, business_phone, business_email, bank_account_name, bank_account_number, bank_ifsc").eq("user_id", user.id).single();
     if (data) {
       setProfileForm({
+        full_name: data.full_name ?? "", mobile_number: data.mobile_number ?? "",
+        local_body_id: data.local_body_id ?? "", ward_number: data.ward_number ? String(data.ward_number) : "",
         company_name: data.company_name ?? "", gst_number: data.gst_number ?? "",
         business_address: data.business_address ?? "", business_city: data.business_city ?? "",
         business_state: data.business_state ?? "", business_pincode: data.business_pincode ?? "",
@@ -302,6 +306,10 @@ const SellingPartnerDashboard = () => {
     if (!user) return;
     setProfileLoading(true);
     const { error } = await supabase.from("profiles").update({
+      full_name: profileForm.full_name.trim() || null,
+      mobile_number: profileForm.mobile_number.trim() || null,
+      local_body_id: profileForm.local_body_id || null,
+      ward_number: profileForm.ward_number ? Number(profileForm.ward_number) : null,
       company_name: profileForm.company_name.trim() || null,
       gst_number: profileForm.gst_number.trim() || null,
       business_address: profileForm.business_address.trim() || null,
@@ -327,6 +335,8 @@ const SellingPartnerDashboard = () => {
     if (!user || !profile) return;
     const init = async () => {
       await Promise.all([fetchAssignedGodowns(), fetchCategories(), fetchWallet(), fetchProfileSettings()]);
+      supabase.from("locations_local_bodies").select("id, name, ward_count").eq("is_active", true).order("name")
+        .then(({ data }) => setLocalBodies((data as { id: string; name: string; ward_count: number }[]) ?? []));
       const { data: myProds } = await supabase.from("seller_products").select("*").eq("seller_id", user.id).order("created_at", { ascending: false });
       const prods = (myProds ?? []) as SellerProduct[];
       setProducts(prods);
