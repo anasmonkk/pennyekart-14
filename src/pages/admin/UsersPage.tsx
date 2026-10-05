@@ -268,6 +268,14 @@ const UsersPage = () => {
       full_name: user.full_name ?? "",
       email: user.email ?? "",
       mobile_number: user.mobile_number ?? "",
+      user_type: user.user_type ?? "customer",
+      seller_type: user.seller_type ?? "normal",
+      role_id: user.role_id ?? "none",
+      is_approved: user.is_approved,
+      is_blocked: user.is_blocked,
+      is_super_admin: user.is_super_admin,
+      local_body_id: user.local_body_id ?? "none",
+      ward_number: user.ward_number != null ? String(user.ward_number) : "none",
     });
   };
 
@@ -278,6 +286,14 @@ const UsersPage = () => {
       full_name: editForm.full_name || null,
       email: editForm.email || null,
       mobile_number: editForm.mobile_number || null,
+      user_type: editForm.user_type,
+      seller_type: editForm.user_type === "selling_partner" ? editForm.seller_type : null,
+      role_id: editForm.role_id === "none" ? null : editForm.role_id,
+      is_approved: editForm.is_approved,
+      is_blocked: editForm.is_blocked,
+      is_super_admin: editForm.is_super_admin,
+      local_body_id: editForm.local_body_id === "none" ? null : editForm.local_body_id,
+      ward_number: editForm.ward_number === "none" ? null : Number(editForm.ward_number),
     }).eq("user_id", editUser.user_id);
     setEditSaving(false);
     if (error) {
