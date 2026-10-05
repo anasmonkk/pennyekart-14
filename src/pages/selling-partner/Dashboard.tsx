@@ -123,12 +123,14 @@ const SellingPartnerDashboard = () => {
 
   // Profile settings state
   const [profileForm, setProfileForm] = useState({
+    full_name: "", mobile_number: "", local_body_id: "", ward_number: "",
     company_name: "", gst_number: "",
     business_address: "", business_city: "", business_state: "", business_pincode: "",
     business_phone: "", business_email: "",
     bank_account_name: "", bank_account_number: "", bank_ifsc: "",
   });
   const [profileLoading, setProfileLoading] = useState(false);
+  const [localBodies, setLocalBodies] = useState<{ id: string; name: string; ward_count: number }[]>([]);
 
   // Analytics state
   const [analytics, setAnalytics] = useState<{
@@ -284,9 +286,11 @@ const SellingPartnerDashboard = () => {
 
   const fetchProfileSettings = async () => {
     if (!user) return;
-    const { data } = await supabase.from("profiles").select("company_name, gst_number, business_address, business_city, business_state, business_pincode, business_phone, business_email, bank_account_name, bank_account_number, bank_ifsc").eq("user_id", user.id).single();
+    const { data } = await supabase.from("profiles").select("full_name, mobile_number, local_body_id, ward_number, company_name, gst_number, business_address, business_city, business_state, business_pincode, business_phone, business_email, bank_account_name, bank_account_number, bank_ifsc").eq("user_id", user.id).single();
     if (data) {
       setProfileForm({
+        full_name: data.full_name ?? "", mobile_number: data.mobile_number ?? "",
+        local_body_id: data.local_body_id ?? "", ward_number: data.ward_number ? String(data.ward_number) : "",
         company_name: data.company_name ?? "", gst_number: data.gst_number ?? "",
         business_address: data.business_address ?? "", business_city: data.business_city ?? "",
         business_state: data.business_state ?? "", business_pincode: data.business_pincode ?? "",
@@ -302,6 +306,10 @@ const SellingPartnerDashboard = () => {
     if (!user) return;
     setProfileLoading(true);
     const { error } = await supabase.from("profiles").update({
+      full_name: profileForm.full_name.trim() || null,
+      mobile_number: profileForm.mobile_number.trim() || null,
+      local_body_id: profileForm.local_body_id || null,
+      ward_number: profileForm.ward_number ? Number(profileForm.ward_number) : null,
       company_name: profileForm.company_name.trim() || null,
       gst_number: profileForm.gst_number.trim() || null,
       business_address: profileForm.business_address.trim() || null,
@@ -327,6 +335,8 @@ const SellingPartnerDashboard = () => {
     if (!user || !profile) return;
     const init = async () => {
       await Promise.all([fetchAssignedGodowns(), fetchCategories(), fetchWallet(), fetchProfileSettings()]);
+      supabase.from("locations_local_bodies").select("id, name, ward_count").eq("is_active", true).order("name")
+        .then(({ data }) => setLocalBodies((data as { id: string; name: string; ward_count: number }[]) ?? []));
       const { data: myProds } = await supabase.from("seller_products").select("*").eq("seller_id", user.id).order("created_at", { ascending: false });
       const prods = (myProds ?? []) as SellerProduct[];
       setProducts(prods);
@@ -1128,6 +1138,42 @@ const SellingPartnerDashboard = () => {
           {/* PROFILE TAB */}
           <TabsContent value="profile" className="space-y-4">
             <form onSubmit={handleProfileSave} className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5" /> Personal & Location</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="full_name">Full Name</Label>
+                    <Input id="full_name" value={profileForm.full_name} onChange={e => setProfileForm(f => ({ ...f, full_name: e.target.value }))} maxLength={100} />
+                  </div>
+                  <div>
+                    <Label htmlFor="mobile_number">Mobile Number</Label>
+                    <Input id="mobile_number" type="tel" value={profileForm.mobile_number} onChange={e => setProfileForm(f => ({ ...f, mobile_number: e.target.value.replace(/\D/g, "").slice(0, 10) }))} maxLength={10} />
+                  </div>
+                  <div>
+                    <Label>Panchayath / Municipality</Label>
+                    <Select value={profileForm.local_body_id} onValueChange={(v) => setProfileForm(f => ({ ...f, local_body_id: v, ward_number: "" }))}>
+                      <SelectTrigger><SelectValue placeholder="Select panchayath" /></SelectTrigger>
+                      <SelectContent>
+                        {localBodies.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Ward</Label>
+                    <Select value={profileForm.ward_number} onValueChange={(v) => setProfileForm(f => ({ ...f, ward_number: v }))} disabled={!profileForm.local_body_id}>
+                      <SelectTrigger><SelectValue placeholder="Select ward" /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: localBodies.find((l) => l.id === profileForm.local_body_id)?.ward_count ?? 0 }, (_, i) => i + 1).map((w) => (
+                          <SelectItem key={w} value={String(w)}>Ward {w}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" /> Company Details</CardTitle>
