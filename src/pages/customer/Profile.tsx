@@ -71,6 +71,13 @@ const Profile = () => {
   const [editMode, setEditMode] = useState(false);
   const [fullName, setFullName] = useState("");
   const [mobile, setMobile] = useState("");
+  const [dob, setDob] = useState("");
+  const [districtId, setDistrictId] = useState("");
+  const [localBodyId, setLocalBodyId] = useState("");
+  const [wardNumber, setWardNumber] = useState("");
+  const [districts, setDistricts] = useState<{ id: string; name: string }[]>([]);
+  const [localBodies, setLocalBodies] = useState<{ id: string; name: string; body_type: string; ward_count: number }[]>([]);
+  const [localBodyName, setLocalBodyName] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
@@ -94,6 +101,56 @@ const Profile = () => {
       setMobile(profile.mobile_number || "");
     }
   }, [profile]);
+
+  // Districts for the location pickers
+  useEffect(() => {
+    supabase
+      .from("locations_districts")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("sort_order")
+      .then(({ data }) => setDistricts((data as { id: string; name: string }[]) ?? []));
+  }, []);
+
+  // Resolve the saved panchayath's district (for pre-selecting) and its display name
+  const profLocation = profile as unknown as { local_body_id?: string | null; ward_number?: number | null; date_of_birth?: string | null } | null;
+  useEffect(() => {
+    const lbId = profLocation?.local_body_id;
+    if (!lbId) { setLocalBodyName(null); return; }
+    supabase
+      .from("locations_local_bodies")
+      .select("district_id, name")
+      .eq("id", lbId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setLocalBodyName(data.name);
+        setDistrictId((cur) => cur || data.district_id);
+      });
+  }, [profLocation?.local_body_id]);
+
+  // Load edit-form values when entering edit mode
+  useEffect(() => {
+    if (!editMode || !profile) return;
+    setDob(profLocation?.date_of_birth || "");
+    setLocalBodyId(profLocation?.local_body_id || "");
+    setWardNumber(profLocation?.ward_number ? String(profLocation.ward_number) : "");
+  }, [editMode, profile]);
+
+  // Local bodies under the chosen district
+  useEffect(() => {
+    if (!districtId) { setLocalBodies([]); return; }
+    supabase
+      .from("locations_local_bodies")
+      .select("id, name, body_type, ward_count")
+      .eq("district_id", districtId)
+      .eq("is_active", true)
+      .order("sort_order")
+      .then(({ data }) => setLocalBodies((data as { id: string; name: string; body_type: string; ward_count: number }[]) ?? []));
+  }, [districtId]);
+
+  const selectedLocalBody = localBodies.find((lb) => lb.id === localBodyId);
+  const wardOptions = selectedLocalBody ? Array.from({ length: selectedLocalBody.ward_count }, (_, i) => i + 1) : [];
 
   const [linkedUserType, setLinkedUserType] = useState<string | null>(null);
 
@@ -184,14 +241,43 @@ const Profile = () => {
   };
 
   const handleSaveProfile = async () => {
-    if (!profile) return;
+    if (!profile || !user) return;
+    if (!fullName.trim()) { toast.error("Enter your name"); return; }
+    if (!/^\d{10}$/.test(mobile)) { toast.error("Enter a valid 10-digit mobile number"); return; }
+    if (localBodyId && !wardNumber) { toast.error("Select your ward"); return; }
     setSaving(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ full_name: fullName, mobile_number: mobile })
-      .eq("user_id", user!.id);
-    if (error) toast.error("Failed to update profile");
-    else { toast.success("Profile updated"); setEditMode(false); }
+    try {
+      // Mobile number is the sign-in identity — changing it also updates the login account (server-side).
+      if (mobile !== (profile.mobile_number || "")) {
+        const { data, error } = await supabase.functions.invoke("customer-auth", {
+          body: { action: "update_mobile", new_mobile: mobile },
+        });
+        if (error || data?.error) {
+          toast.error(data?.error || "Failed to update mobile number");
+          setSaving(false);
+          return;
+        }
+      }
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: fullName.trim(),
+          mobile_number: mobile,
+          date_of_birth: dob || null,
+          local_body_id: localBodyId || null,
+          ward_number: wardNumber ? parseInt(wardNumber) : null,
+        })
+        .eq("user_id", user.id);
+      if (error) toast.error("Failed to update profile");
+      else {
+        toast.success("Profile updated");
+        setEditMode(false);
+        setTimeout(() => window.location.reload(), 600);
+        return;
+      }
+    } catch {
+      toast.error("Connection error. Please try again.");
+    }
     setSaving(false);
   };
 
