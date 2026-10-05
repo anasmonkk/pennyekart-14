@@ -1140,6 +1140,42 @@ const SellingPartnerDashboard = () => {
             <form onSubmit={handleProfileSave} className="space-y-6">
               <Card>
                 <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5" /> Personal & Location</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="full_name">Full Name</Label>
+                    <Input id="full_name" value={profileForm.full_name} onChange={e => setProfileForm(f => ({ ...f, full_name: e.target.value }))} maxLength={100} />
+                  </div>
+                  <div>
+                    <Label htmlFor="mobile_number">Mobile Number</Label>
+                    <Input id="mobile_number" type="tel" value={profileForm.mobile_number} onChange={e => setProfileForm(f => ({ ...f, mobile_number: e.target.value.replace(/\D/g, "").slice(0, 10) }))} maxLength={10} />
+                  </div>
+                  <div>
+                    <Label>Panchayath / Municipality</Label>
+                    <Select value={profileForm.local_body_id} onValueChange={(v) => setProfileForm(f => ({ ...f, local_body_id: v, ward_number: "" }))}>
+                      <SelectTrigger><SelectValue placeholder="Select panchayath" /></SelectTrigger>
+                      <SelectContent>
+                        {localBodies.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Ward</Label>
+                    <Select value={profileForm.ward_number} onValueChange={(v) => setProfileForm(f => ({ ...f, ward_number: v }))} disabled={!profileForm.local_body_id}>
+                      <SelectTrigger><SelectValue placeholder="Select ward" /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: localBodies.find((l) => l.id === profileForm.local_body_id)?.ward_count ?? 0 }, (_, i) => i + 1).map((w) => (
+                          <SelectItem key={w} value={String(w)}>Ward {w}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
                   <CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" /> Company Details</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4 sm:grid-cols-2">
