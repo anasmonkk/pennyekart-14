@@ -72,22 +72,35 @@ const UtilityServices = () => {
 
   useEffect(() => {
     const load = async () => {
-      const [cats, svcs, provs] = await Promise.all([
+      const [cats, svcs, provs, areas] = await Promise.all([
         supabase.from("utility_service_categories").select("*").eq("is_active", true).order("sort_order"),
         supabase.from("utility_services").select("*").eq("is_active", true).eq("is_approved", true).order("sort_order"),
         (supabase as any).rpc("get_utility_providers"),
+        supabase.from("utility_seller_areas").select("seller_user_id, local_body_id, ward_number"),
       ]);
       setCategories((cats.data as UtilityCategory[]) ?? []);
-      // Area scoping: a service pinned to a panchayath is only shown to customers
-      // of that panchayath (and ward, when the service sets one). Services with no
-      // panchayath are shown to everyone.
+      // Area scoping: a service is shown to customers of the panchayath/ward it is
+      // pinned to, OR to customers in any panchayath/ward allocated to its provider
+      // (utility_seller_areas; a null ward there means the whole local body).
+      // Services with no panchayath and no allocated areas are shown to everyone.
       const myLb = (profile as any)?.local_body_id ?? null;
       const myWard = (profile as any)?.ward_number ?? null;
-      const visible = ((svcs.data as UtilityService[]) ?? []).filter((s) => {
-        if (!s.local_body_id) return true;
-        if (!myLb || s.local_body_id !== myLb) return false;
-        if (s.ward_number && myWard && s.ward_number !== myWard) return false;
+      const areaRows = (areas.data as { seller_user_id: string; local_body_id: string; ward_number: number | null }[]) ?? [];
+      const matchesCustomer = (lb: string | null, ward: number | null) => {
+        if (!lb) return true;
+        if (!myLb || lb !== myLb) return false;
+        if (ward && myWard && ward !== myWard) return false;
         return true;
+      };
+      const visible = ((svcs.data as UtilityService[]) ?? []).filter((s) => {
+        if (matchesCustomer(s.local_body_id, s.ward_number)) return true;
+        if (!myLb || !s.provider_user_id) return false;
+        return areaRows.some(
+          (a) =>
+            a.seller_user_id === s.provider_user_id &&
+            a.local_body_id === myLb &&
+            (a.ward_number == null || !myWard || a.ward_number === myWard)
+        );
       });
       setServices(visible);
       setProviders((provs?.data as ProviderInfo[]) ?? []);
