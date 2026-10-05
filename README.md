@@ -108,3 +108,4 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/c
 4/10/26 organ
 05/10/26 pennykrt
 05/10/26 back office
+05/10/26 barcod
