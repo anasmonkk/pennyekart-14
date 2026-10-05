@@ -495,6 +495,16 @@ const Profile = () => {
                   {profile?.mobile_number && (
                     <p className="text-sm text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" /> {profile.mobile_number}</p>
                   )}
+                  {!editMode && localBodyName && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> {localBodyName}{profLocation?.ward_number ? `, Ward ${profLocation.ward_number}` : ""}
+                    </p>
+                  )}
+                  {!editMode && profLocation?.date_of_birth && (
+                    <p className="text-sm text-muted-foreground">
+                      DOB: {new Date(profLocation.date_of_birth).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    </p>
+                  )}
                 </div>
                 {!editMode && <Button size="sm" variant="outline" onClick={() => setEditMode(true)}>Edit</Button>}
               </div>
@@ -507,7 +517,58 @@ const Profile = () => {
                   </div>
                   <div>
                     <Label>Mobile Number</Label>
-                    <Input value={mobile} onChange={e => setMobile(e.target.value)} />
+                    <Input
+                      type="tel"
+                      value={mobile}
+                      onChange={e => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      placeholder="10-digit number"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="dob">Date of Birth</Label>
+                    <Input id="dob" type="date" value={dob} onChange={e => setDob(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>State</Label>
+                    <Input value="Kerala" disabled />
+                  </div>
+                  <div>
+                    <Label htmlFor="district">District</Label>
+                    <select
+                      id="district"
+                      value={districtId}
+                      onChange={e => { setDistrictId(e.target.value); setLocalBodyId(""); setWardNumber(""); }}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="">Select district</option>
+                      {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="localBody">Panchayath / Municipality</Label>
+                    <select
+                      id="localBody"
+                      value={localBodyId}
+                      onChange={e => { setLocalBodyId(e.target.value); setWardNumber(""); }}
+                      disabled={!districtId}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Select panchayath</option>
+                      {localBodies.map(lb => <option key={lb.id} value={lb.id}>{lb.name} ({lb.body_type})</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="ward">Ward</Label>
+                    <select
+                      id="ward"
+                      value={wardNumber}
+                      onChange={e => setWardNumber(e.target.value)}
+                      disabled={!localBodyId}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Select ward</option>
+                      {wardOptions.map(w => <option key={w} value={String(w)}>Ward {w}</option>)}
+                    </select>
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={handleSaveProfile} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>

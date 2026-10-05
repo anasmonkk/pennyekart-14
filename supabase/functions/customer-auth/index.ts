@@ -100,5 +100,31 @@ Deno.serve(async (req) => {
     return json({ status: "ok", ...session });
   }
 
+  // Mobile number is the sign-in identity: this updates both the login account
+  // and the profile so the customer can log in with their new number.
+  if (body.action === "update_mobile") {
+    const userId = await getUserId(req);
+    if (!userId) return json({ error: "Not signed in" }, 401);
+    const newMobile = norm(body.new_mobile);
+    if (newMobile.length !== 10) return json({ error: "Enter a valid 10-digit mobile number" }, 400);
+    const newEmail = `${newMobile}@pennyekart.in`;
+
+    const { data: current } = await admin.from("profiles").select("email").eq("user_id", userId).maybeSingle();
+    if (!current) return json({ error: "Profile not found" }, 404);
+    if (current.email === newEmail) return json({ status: "ok" });
+
+    const { data: taken } = await admin.from("profiles").select("id").eq("email", newEmail).maybeSingle();
+    if (taken) return json({ error: "This mobile number is already registered" }, 409);
+
+    const { error: authErr } = await admin.auth.admin.updateUserById(userId, { email: newEmail, email_confirm: true });
+    if (authErr) {
+      if (/already/i.test(authErr.message)) return json({ error: "This mobile number is already registered" }, 409);
+      return json({ error: "Could not update mobile number. Please try again." }, 500);
+    }
+    const { error: pErr } = await admin.from("profiles").update({ mobile_number: newMobile, email: newEmail }).eq("user_id", userId);
+    if (pErr) return json({ error: "Mobile updated but profile sync failed. Please contact support." }, 500);
+    return json({ status: "ok" });
+  }
+
   return json({ error: "Invalid action" }, 400);
 });
