@@ -16,10 +16,15 @@ interface Props {
   dashboardPath: string;
   signupPath: string;
   forgotPath: string;
+  rememberMobile?: boolean;
 }
 
-const PartnerLogin = ({ userType, title, dashboardPath, signupPath, forgotPath }: Props) => {
-  const [mobile, setMobile] = useState("");
+const PartnerLogin = ({ userType, title, dashboardPath, signupPath, forgotPath, rememberMobile = false }: Props) => {
+  const mobileStorageKey = `pennyekart_${userType}_mobile`;
+  const [mobile, setMobile] = useState(() => {
+    if (!rememberMobile) return "";
+    try { return localStorage.getItem(mobileStorageKey) ?? ""; } catch { return ""; }
+  });
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -60,6 +65,9 @@ const PartnerLogin = ({ userType, title, dashboardPath, signupPath, forgotPath }
         await supabase.auth.signOut();
         toast({ title: "Account pending", description: "Your account is awaiting admin approval.", variant: "destructive" });
       } else {
+        if (rememberMobile) {
+          try { localStorage.setItem(mobileStorageKey, mobile); } catch { /* storage may be unavailable */ }
+        }
         navigate(dashboardPath);
       }
     }
@@ -70,6 +78,24 @@ const PartnerLogin = ({ userType, title, dashboardPath, signupPath, forgotPath }
   const restoring = authLoading;
   if (restoring) {
     return <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">Loading...</div>;
+  }
+
+  if (user && !profile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Restoring your account</CardTitle>
+            <CardDescription>Your saved sign-in is active, but your account details have not loaded yet.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" className="w-full" onClick={() => window.location.reload()}>
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

@@ -1,5 +1,9 @@
 # Roadmap
 
+## Selling partner sign-in and notifications
+- [x] Keep selling-partner sign-in restored after reopening; remember the mobile number without saving the password.
+- [x] Refresh the notification permission display when the app resumes.
+
 ## Mobile homepage Utility shortcut
 - [x] Replace scrolling service names with animated Utility category images; keep the icon fallback.
 
