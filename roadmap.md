@@ -1,5 +1,8 @@
 # Roadmap
 
+## Consistent order popups
+- [ ] Match admin and selling-partner order popups to the delivery blue layout, preserving role-specific actions; verify layout and controls.
+
 ## Delivery order contacts and popup
 - [x] Show customer contact details on delivery orders and organize the blue gradient notification popup for mobile; deploy assignment-checked contact service.
 - [ ] Verify customer contact retrieval and order updates signed in on the delivery app (blocked: external Supabase session unavailable); sample popup layout and controls verified at 360px.

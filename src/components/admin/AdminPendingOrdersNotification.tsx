@@ -1,18 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import OrderNotificationDialog from "@/components/OrderNotificationDialog";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Bell, Package, Settings as SettingsIcon, Eye, Volume2, VolumeX, Clock, MapPin, Sparkles, AlarmClock } from "lucide-react";
+import { Bell, Settings as SettingsIcon, Eye, Volume2, VolumeX, AlarmClock } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 
 interface PendingOrder {
@@ -220,179 +219,22 @@ const AdminPendingOrdersNotification = () => {
         )}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-hidden rounded-2xl sm:rounded-2xl p-0 gap-0 border-0 shadow-2xl flex flex-col">
-          {/* Header with animated gradient */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-[#0a1f44] via-[#0f5132] to-[#d4af37] p-4 sm:p-5 text-white">
-            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,white,transparent_60%)]" />
-            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full bg-[#d4af37]/20 blur-2xl animate-pulse" />
-            <DialogHeader className="space-y-1 relative">
-              <DialogTitle className="flex items-center gap-2 text-white text-base sm:text-lg">
-                <div className="relative">
-                  <Package className="h-5 w-5 sm:h-6 sm:w-6" />
-                  <Sparkles className="h-3 w-3 absolute -top-1 -right-1 text-[#ffd700] animate-pulse" />
-                </div>
-                <span className="font-bold tracking-tight">New Pending Orders</span>
-                <span className="ml-auto bg-[#d4af37]/90 backdrop-blur-sm text-[#0a1f44] text-xs font-bold rounded-full min-w-6 h-6 px-2 flex items-center justify-center ring-2 ring-white/40 animate-pulse">
-                  {orders.length}
-                </span>
-              </DialogTitle>
-              <p className="text-[11px] sm:text-xs text-white/90 pl-7">
-                {orders.length > 0
-                  ? `${orders.length} order${orders.length > 1 ? "s" : ""} waiting for your action`
-                  : "All caught up — nothing pending."}
-              </p>
-            </DialogHeader>
-          </div>
-
-
-          <div className="p-3 sm:p-5 space-y-2 sm:space-y-3 overflow-y-auto flex-1">
-            {orders.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-6">No pending orders.</p>
-            )}
-            {orders.map((order) => (
-              <div
-                key={order.id}
-                className="relative overflow-hidden rounded-xl border bg-card p-3 sm:p-4 space-y-2 sm:space-y-3 shadow-sm hover:shadow-md hover:border-[#d4af37] transition-all"
-              >
-                {/* Gradient accent bar */}
-                <div className="absolute left-0 top-0 bottom-1 w-1 rounded-l-xl bg-gradient-to-b from-[#0a1f44] via-[#0f5132] to-[#d4af37]" />
-
-                {/* Top row: ID + Amount */}
-                <div className="flex items-center justify-between pl-2">
-                  <div className="flex items-center gap-2 min-w-1">
-                    <span className="font-mono text-xs sm:text-sm font-semibold text-foreground">
-                      #{order.id.slice(0, 8)}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] sm:text-xs h-5 border-[#0a1f44]/30 bg-[#0a1f44]/5 text-[#0a1f44] hidden sm:inline-flex"
-                    >
-                      {order.status.replace(/_/g, " ")}
-                    </Badge>
-                  </div>
-                  <span className="text-sm sm:text-base font-bold bg-gradient-to-r from-[#0a1f44] via-[#0f5132] to-[#b8860b] bg-clip-text text-transparent">
-                    ₹{order.total}
-                  </span>
-                </div>
-
-                {/* Status badge on mobile */}
-                <div className="pl-2 sm:hidden">
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] h-5 border-[#0a1f44]/30 bg-[#0a1f44]/5 text-[#0a1f44]"
-                  >
-                    {order.status.replace(/_/g, " ")}
-                  </Badge>
-                </div>
-
-                {/* Address */}
-                <p className="text-[11px] sm:text-xs text-muted-foreground truncate pl-2 flex items-center gap-1">
-                  <MapPin className="h-3 w-3 shrink-0" />
-                  {order.shipping_address || "No address"}
-                </p>
-
-                {/* Time */}
-                <p className="text-[10px] sm:text-xs text-muted-foreground pl-2 flex items-center gap-1">
-                  <Clock className="h-3 w-3 shrink-0" />
-                  {new Date(order.created_at).toLocaleString()}
-                </p>
-
-                {/* Product details */}
-                {Array.isArray(order.items) && order.items.length > 0 && (
-                  <div className="ml-2 rounded-lg border bg-muted/30 p-2 space-y-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Products ({order.items.length})
-                    </p>
-                    {order.items.slice(0, 4).map((item: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        {item.image_url ? (
-                          <img
-                            src={item.image_url}
-                            alt={item.name || "Product"}
-                            loading="lazy"
-                            className="h-8 w-8 rounded border object-cover shrink-0"
-                          />
-                        ) : (
-                          <div className="h-8 w-8 rounded border bg-background flex items-center justify-center shrink-0">
-                            <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[11px] sm:text-xs font-medium truncate">
-                            {item.name || item.product_name || item.id?.slice(0, 8) || "Item"}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            Qty {item.quantity ?? 1} · ₹{item.price ?? 0}
-                            {item.variant ? ` · ${item.variant}` : ""}
-                          </p>
-                        </div>
-                        <span className="text-[11px] font-semibold shrink-0">
-                          ₹{((item.price ?? 0) * (item.quantity ?? 1)).toFixed(0)}
-                        </span>
-                      </div>
-                    ))}
-                    {order.items.length > 4 && (
-                      <p className="text-[10px] text-muted-foreground">
-                        +{order.items.length - 4} more item{order.items.length - 4 > 1 ? "s" : ""}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Action button */}
-                <div className="flex gap-2 pt-1 pl-2">
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-gradient-to-r from-[#0a1f44] via-[#0f5132] to-[#d4af37] hover:opacity-90 text-white shadow-md shadow-[#0a1f44]/30 text-xs sm:text-sm h-8 sm:h-9"
-                    onClick={() => {
-                      setOpen(false);
-                      navigate("/admin/orders");
-                    }}
-                  >
-                    <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" /> Open in Orders
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Sticky footer with prominent actions */}
-          {orders.length > 0 && (
-            <div className="border-t bg-background/95 backdrop-blur-sm p-3 sm:p-4 flex flex-col sm:flex-row gap-2 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
-              <Button
-                size="lg"
-                variant="outline"
-                className="flex-1 h-11 border-2 border-[#d4af37] text-[#0a1f44] hover:bg-[#d4af37]/10 hover:text-[#0a1f44] hover:border-[#b8860b] font-semibold shadow-sm"
-                onClick={() => {
-                  orders.forEach((o) => snoozedIdsRef.current.add(o.id));
-                  try {
-                    sessionStorage.setItem(
-                      SUPPRESS_KEY,
-                      JSON.stringify([...snoozedIdsRef.current])
-                    );
-                  } catch {}
-                  setOpen(false);
-                }}
-              >
-                <AlarmClock className="h-4 w-4 mr-1.5" />
-                Show me Later
-              </Button>
-              <Button
-                size="lg"
-                className="flex-1 h-11 bg-gradient-to-r from-[#0a1f44] via-[#0f5132] to-[#d4af37] hover:opacity-90 text-white shadow-md font-semibold"
-                onClick={() => {
-                  setOpen(false);
-                  navigate("/admin/orders");
-                }}
-              >
-                <Eye className="h-4 w-4 mr-1.5" />
-                View All Orders
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <OrderNotificationDialog
+        open={open} onOpenChange={setOpen} title="Pending orders" pending={orders} showTabs={false}
+        renderActions={() => <Button className="w-full h-11 delivery-gradient" onClick={() => { setOpen(false); navigate("/admin/orders"); }}>
+          <Eye className="mr-2 h-4 w-4" />Open in Orders
+        </Button>}
+        footer={orders.length > 0 ? <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" className="h-auto min-h-11 whitespace-normal" onClick={() => {
+            orders.forEach((o) => snoozedIdsRef.current.add(o.id));
+            try { sessionStorage.setItem(SUPPRESS_KEY, JSON.stringify([...snoozedIdsRef.current])); } catch {}
+            setOpen(false);
+          }}><AlarmClock className="mr-1.5 h-4 w-4 shrink-0" />Show me Later</Button>
+          <Button className="h-auto min-h-11 whitespace-normal delivery-gradient" onClick={() => { setOpen(false); navigate("/admin/orders"); }}>
+            <Eye className="mr-1.5 h-4 w-4 shrink-0" />View All Orders
+          </Button>
+        </div> : undefined}
+      />
     </>
   );
 }

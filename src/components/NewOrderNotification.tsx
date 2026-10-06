@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import OrderNotificationDialog from "@/components/OrderNotificationDialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Bell, Package, Eye, CheckCircle2 } from "lucide-react";
+import { Bell, Eye, CheckCircle2 } from "lucide-react";
 import OrderDetailDialog from "@/components/OrderDetailDialog";
 import DeliveryOrderNotificationDialog from "@/components/delivery/DeliveryOrderNotificationDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -164,28 +163,6 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
 
   if (pendingOrders.length === 0 && inProgressOrders.length === 0) return null;
 
-  const renderItems = (order: PendingOrder) =>
-    Array.isArray(order.items) && order.items.length > 0 ? (
-      <div className="space-y-1 border-t pt-2">
-        {order.items.slice(0, 4).map((item: any, idx: number) => (
-          <div key={idx} className="flex items-center gap-2">
-            {item.image_url && (
-              <img src={item.image_url} alt={item.name} className="h-8 w-8 rounded border object-cover shrink-0" />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium truncate">{item.name || item.id?.slice(0, 8)}</p>
-              <p className="text-[10px] text-muted-foreground">
-                Qty: {item.quantity || 1} · ₹{item.price ?? 0}
-              </p>
-            </div>
-          </div>
-        ))}
-        {order.items.length > 4 && (
-          <p className="text-[10px] text-muted-foreground">+{order.items.length - 4} more items</p>
-        )}
-      </div>
-    ) : null;
-
   return (
     <>
       {/* Floating notification bell */}
@@ -208,89 +185,17 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
         open={open} onOpenChange={setOpen} userId={userId} pending={pendingOrders} active={inProgressOrders}
         dismissedIds={dismissedIds} busyId={busyId} onAccept={handleAccept} onFinish={handleFinish}
         onLater={handleDismiss} onDetail={setDetailOrder}
-      /> : <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-primary" />
-              Orders / Requests
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {pendingOrders.length > 0 && (
-              <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">
-                  New requests ({pendingOrders.length})
-                </p>
-                {pendingOrders.map((order) => (
-                  <div
-                    key={order.id}
-                    className={`border rounded-lg p-3 space-y-2 transition-opacity ${
-                      dismissedIds.has(order.id) ? "opacity-40" : "bg-accent/30"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-sm font-medium">#{order.id.slice(0, 8)}</span>
-                      <Badge variant="secondary">₹{order.total}</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {order.shipping_address || "No address"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(order.created_at).toLocaleString()}
-                    </p>
-                    {renderItems(order)}
-                    {!dismissedIds.has(order.id) && (
-                      <div className="flex gap-2 pt-1">
-                        <Button
-                          size="sm"
-                          className="flex-1"
-                          disabled={busyId === order.id}
-                          onClick={() => handleAccept(order.id)}
-                        >
-                          {busyId === order.id ? "Accepting..." : "Accept"}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => setDetailOrder(order)}>
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleDismiss(order.id)}>
-                          Later
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {inProgressOrders.length > 0 && (
-              <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">
-                  In progress ({inProgressOrders.length})
-                </p>
-                {inProgressOrders.map((order) => (
-                  <div key={order.id} className="border rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-sm font-medium">#{order.id.slice(0, 8)}</span>
-                      <Badge variant="outline">{order.status.replace(/_/g, " ")}</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {order.shipping_address || "No address"}
-                    </p>
-                    {renderItems(order)}
-                    <div className="flex gap-2 pt-1">
-                      <Button size="sm" variant="outline" onClick={() => setDetailOrder(order)}>
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>}
+      /> : <OrderNotificationDialog
+        open={open} onOpenChange={setOpen} title="Seller orders"
+        pending={pendingOrders} active={inProgressOrders} dismissedIds={dismissedIds}
+        renderActions={(order, isNew) => <div className="grid grid-cols-[1fr_auto] gap-2">
+          {isNew && !dismissedIds.has(order.id) && <Button className="h-11 delivery-gradient" disabled={busyId !== null} onClick={() => handleAccept(order.id)}>
+            <CheckCircle2 className="mr-2 h-4 w-4" />{busyId === order.id ? "Accepting…" : "Accept order"}
+          </Button>}
+          <Button variant="outline" className={isNew && !dismissedIds.has(order.id) ? "h-11 w-11 p-0" : "col-span-2 h-11"} aria-label={`View order ${order.id.slice(0, 8)}`} title="View order" onClick={() => setDetailOrder(order)}><Eye className="h-4 w-4" />{(!isNew || dismissedIds.has(order.id)) && "View order"}</Button>
+          {isNew && !dismissedIds.has(order.id) && <Button variant="ghost" className="col-span-2 h-10" onClick={() => handleDismiss(order.id)}>Later</Button>}
+        </div>}
+      />}
       <OrderDetailDialog order={detailOrder} open={!!detailOrder} onOpenChange={(v) => { if (!v) setDetailOrder(null); }} />
     </>
   );
