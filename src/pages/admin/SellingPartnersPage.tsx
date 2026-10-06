@@ -423,13 +423,22 @@ const SellingPartnersPage = () => {
                 {partnerProducts.map((prod) => (
                   <TableRow key={prod.id}>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        {prod.image_url && <img src={prod.image_url} alt="" className="h-8 w-8 rounded object-cover" />}
+                      <button
+                        type="button"
+                        className="flex items-center gap-2 text-left hover:opacity-80"
+                        onClick={() => { setDetailProduct(prod); setProductImageIdx(0); }}
+                        title="View full product details"
+                      >
+                        {prod.image_url ? (
+                          <img src={prod.image_url} alt="" className="h-8 w-8 rounded object-cover" />
+                        ) : (
+                          <span className="h-8 w-8 rounded bg-muted flex items-center justify-center"><ImageIcon className="h-4 w-4 text-muted-foreground" /></span>
+                        )}
                         <div>
-                          <p className="font-medium">{prod.name}</p>
+                          <p className="font-medium underline-offset-2 hover:underline">{prod.name}</p>
                           {prod.category && <p className="text-xs text-muted-foreground">{prod.category}</p>}
                         </div>
-                      </div>
+                      </button>
                     </TableCell>
                     <TableCell>₹{prod.mrp}</TableCell>
                     <TableCell className="text-muted-foreground">₹{prod.purchase_rate}</TableCell>
