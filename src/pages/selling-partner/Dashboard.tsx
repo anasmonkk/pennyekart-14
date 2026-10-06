@@ -470,6 +470,16 @@ const SellingPartnerDashboard = () => {
 
   const pendingCount = orders.filter(o => !["delivered", "cancelled", "return_confirmed"].includes(o.status)).length;
 
+  // Simple launcher cards shown on the home screen
+  const homeCards = [
+    { tab: "products", label: "Products", icon: Package, sub: `${products.length} listed` },
+    { tab: "orders", label: "Orders", icon: ShoppingCart, sub: `${pendingCount} pending` },
+    { tab: "analytics", label: "Analytics", icon: BarChart3, sub: "Sales insights" },
+    { tab: "wallet", label: "Wallet", icon: Wallet, sub: `₹${walletRevenue.toLocaleString("en-IN")}` },
+    { tab: "prime", label: "Prime", icon: Tag, sub: "Coupons & agents" },
+    { tab: "profile", label: "Profile", icon: User, sub: profile?.full_name || "Your details" },
+  ];
+
   const toggleAvailability = async () => {
     if (!profile?.user_id) return;
     const next = !available;
