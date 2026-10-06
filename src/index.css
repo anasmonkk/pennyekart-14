@@ -4,6 +4,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Delivery-only theme, including portalled order notifications. */
+.delivery-blue {
+  --primary: 215 86% 46%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 215 86% 46%;
+  --delivery-gradient-end: 198 89% 40%;
+  --secondary: 213 85% 94%;
+  --secondary-foreground: 215 75% 32%;
+  --accent: 213 85% 94%;
+  --accent-foreground: 215 75% 32%;
+}
+.dark .delivery-blue {
+  --primary: 211 90% 62%;
+  --secondary: 215 35% 22%;
+  --secondary-foreground: 210 90% 90%;
+  --accent: 215 35% 22%;
+  --accent-foreground: 210 90% 90%;
+}
+.delivery-gradient {
+  background-image: linear-gradient(115deg, hsl(var(--primary)), hsl(var(--delivery-gradient-end)));
+}
+
 @layer base {
   :root {
     --background: 40 33% 97%;

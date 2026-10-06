@@ -1,7 +1,8 @@
 # Roadmap
 
 ## Delivery order contacts and popup
-- [ ] Show customer contact details on delivery orders and organize the blue gradient notification popup for mobile.
+- [x] Show customer contact details on delivery orders and organize the blue gradient notification popup for mobile; deploy assignment-checked contact service.
+- [ ] Verify customer contact retrieval and order updates signed in on the delivery app (blocked: external Supabase session unavailable); sample popup layout and controls verified at 360px.
 
 ## Delivery staff customer location
 - [ ] Navigate to saved customer address pins and let assigned delivery staff save a newly captured delivery pin to the customer's address book.

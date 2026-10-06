@@ -137,7 +137,7 @@ const DeliveryStaffDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="delivery-blue min-h-screen bg-background">
       <header className="flex items-center justify-between border-b bg-card px-4 py-3">
         <div className="flex items-center gap-3">
           <img src={logo} alt="Pennyekart" className="h-8" />
