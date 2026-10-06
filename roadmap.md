@@ -1,5 +1,8 @@
 # Roadmap
 
+## Delivery order contacts and popup
+- [ ] Show customer contact details on delivery orders and organize the blue gradient notification popup for mobile.
+
 ## Delivery staff customer location
 - [ ] Navigate to saved customer address pins and let assigned delivery staff save a newly captured delivery pin to the customer's address book.
 
