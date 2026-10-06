@@ -269,15 +269,17 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
                     </p>
                     {renderItems(order)}
                     <div className="flex gap-2 pt-1">
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        disabled={busyId === order.id}
-                        onClick={() => handleFinish(order.id)}
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-                        {busyId === order.id ? "Finishing..." : "Finish"}
-                      </Button>
+                      {role === "delivery" && (
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          disabled={busyId === order.id}
+                          onClick={() => handleFinish(order.id)}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                          {busyId === order.id ? "Finishing..." : "Finish"}
+                        </Button>
+                      )}
                       <Button size="sm" variant="outline" onClick={() => setDetailOrder(order)}>
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
