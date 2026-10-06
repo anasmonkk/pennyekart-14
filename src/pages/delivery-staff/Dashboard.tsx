@@ -7,11 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Truck, Wallet, Package, PackageOpen, MapPin, User } from "lucide-react";
+import { LogOut, Truck, Wallet, Package, User, ArrowLeft } from "lucide-react";
 import logo from "@/assets/logo.png";
-import DeliveryStats from "@/components/delivery/DeliveryStats";
 import DeliveryOrders from "@/components/delivery/DeliveryOrders";
 import DeliveryWallet from "@/components/delivery/DeliveryWallet";
 import DeliveryStock from "@/components/delivery/DeliveryStock";
@@ -31,14 +30,13 @@ interface Order {
 const DeliveryStaffDashboard = () => {
   const focusOrderId = new URLSearchParams(window.location.search).get("order");
   const { user, profile, signOut } = useAuth();
+  const [activeTab, setActiveTab] = useState(focusOrderId ? "orders" : "home");
   const [orders, setOrders] = useState<Order[]>([]);
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [earningBalance, setEarningBalance] = useState<number>(0);
-  const [totalCollections, setTotalCollections] = useState<number>(0);
   const [deliveryType, setDeliveryType] = useState<"fixed" | "part_time">("fixed");
   const [assignedWards, setAssignedWards] = useState<{ local_body_name: string; ward_number: number; local_body_id?: string }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [quickFilter, setQuickFilter] = useState<{ status: string; nonce: number } | null>(null);
   const { toast } = useToast();
   const [localBodies, setLocalBodies] = useState<{ id: string; name: string; ward_count: number }[]>([]);
   const [profileForm, setProfileForm] = useState({ full_name: "", mobile_number: "", local_body_id: "", ward_number: "" });
@@ -90,13 +88,12 @@ const DeliveryStaffDashboard = () => {
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
-    const [ordersRes, walletRes, wardsRes, lbRes, profileRes, txRes] = await Promise.all([
+    const [ordersRes, walletRes, wardsRes, lbRes, profileRes] = await Promise.all([
       supabase.from("orders").select("*").eq("assigned_delivery_staff_id", user.id).order("created_at", { ascending: false }),
       supabase.from("delivery_staff_wallets").select("*").eq("staff_user_id", user.id).maybeSingle(),
       supabase.from("delivery_staff_ward_assignments").select("*").eq("staff_user_id", user.id),
       supabase.from("locations_local_bodies").select("id, name"),
       supabase.from("profiles").select("delivery_type").eq("user_id", user.id).maybeSingle(),
-      supabase.from("delivery_staff_wallet_transactions").select("amount, type").eq("staff_user_id", user.id),
     ]);
 
     setOrders((ordersRes.data as Order[]) ?? []);
@@ -106,13 +103,6 @@ const DeliveryStaffDashboard = () => {
     // Determine delivery type from profile
     const dtype = (profileRes.data as any)?.delivery_type ?? "fixed";
     setDeliveryType(dtype === "part_time" ? "part_time" : "fixed");
-
-    // Compute total collections from credit transactions
-    const txs = txRes.data ?? [];
-    const collections = txs
-      .filter((t: any) => t.type === "credit")
-      .reduce((sum: number, t: any) => sum + (t.amount ?? 0), 0);
-    setTotalCollections(collections);
 
     const lbs = lbRes.data ?? [];
     setAssignedWards((wardsRes.data ?? []).map((w: any) => {
@@ -125,15 +115,13 @@ const DeliveryStaffDashboard = () => {
   useEffect(() => { fetchData(); }, [user]);
 
   const pendingCount = orders.filter((o) => !["delivered", "cancelled", "return_requested", "return_accepted", "return_collected", "return_confirmed"].includes(o.status)).length;
-  const deliveredToday = orders.filter((o) => o.status === "delivered" && new Date(o.created_at).toDateString() === new Date().toDateString()).length;
-  const pickupPending = orders.filter((o) => ["pending", "seller_accepted", "accepted"].includes(o.status)).length;
-  const shipPending = orders.filter((o) => o.status === "pickup").length;
-  const deliveryPending = orders.filter((o) => o.status === "shipped").length;
 
-  const quickCards = [
-    { label: "Pickup Pending", count: pickupPending, icon: PackageOpen, status: "pickup_pending" },
-    { label: "Ship Pending", count: shipPending, icon: Truck, status: "pickup" },
-    { label: "Delivery Pending", count: deliveryPending, icon: MapPin, status: "shipped" },
+  // Simple launcher cards shown on the home screen
+  const homeCards = [
+    { tab: "orders", label: "Orders", icon: Truck, sub: `${pendingCount} pending` },
+    { tab: "wallet", label: "Wallet", icon: Wallet, sub: `₹${walletBalance}` },
+    { tab: "stock", label: "Stock", icon: Package, sub: assignedWards.length ? `${assignedWards.length} ward${assignedWards.length === 1 ? "" : "s"} assigned` : "Assigned stock" },
+    { tab: "profile", label: "Profile", icon: User, sub: profile?.full_name || "Your details" },
   ];
 
   return (
@@ -142,7 +130,7 @@ const DeliveryStaffDashboard = () => {
         <div className="flex items-center gap-3">
           <img src={logo} alt="Pennyekart" className="h-8" />
           <div>
-            <span className="font-semibold text-foreground">Delivery Dashboard</span>
+            <span className="font-semibold text-foreground">Delivery Partner</span>
             {deliveryType === "part_time" && (
               <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Part-time</span>
             )}
@@ -156,51 +144,43 @@ const DeliveryStaffDashboard = () => {
 
       <main className="mx-auto max-w-5xl p-4 space-y-6">
         <NotificationToggle />
-        <DeliveryStats
-          pendingCount={pendingCount}
-          deliveredToday={deliveredToday}
-          walletBalance={walletBalance}
-          totalCollections={totalCollections}
-          earningBalance={earningBalance}
-          deliveryType={deliveryType}
-          assignedWards={assignedWards}
-        />
 
-        {!loading && (
-          <div className="grid grid-cols-3 gap-3">
-            {quickCards.map(({ label, count, icon: Icon, status }) => (
-              <button
-                key={label}
-                onClick={() => setQuickFilter({ status, nonce: Date.now() })}
-                className={`flex flex-col items-center gap-1.5 rounded-xl border bg-card p-3 text-center transition-colors hover:bg-accent ${count > 0 ? "border-primary/40" : "opacity-70"}`}
-              >
-                <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-                  <Icon className="h-5 w-5 text-primary" />
-                  {count > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
-                      {count}
-                    </span>
-                  )}
-                </span>
-                <span className="text-[11px] font-medium leading-tight text-foreground">{label}</span>
-                <span className="text-xs text-muted-foreground">{count} order{count === 1 ? "" : "s"}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Greeting */}
+        <div className="rounded-2xl bg-gradient-to-br from-primary to-primary/70 p-5 text-primary-foreground">
+          <p className="text-sm opacity-90">Hi {profile?.full_name?.split(" ")[0] || "there"} 👋</p>
+          <h2 className="text-xl font-bold">
+            {pendingCount > 0 ? `${pendingCount} order${pendingCount > 1 ? "s" : ""} pending delivery` : "All deliveries are up to date"}
+          </h2>
+        </div>
 
         {loading ? (
           <p className="text-muted-foreground">Loading...</p>
         ) : user ? (
-          <Tabs defaultValue="orders">
-            <TabsList className="w-full justify-start">
-              <TabsTrigger value="orders"><Truck className="h-4 w-4 mr-1" /> Orders</TabsTrigger>
-              <TabsTrigger value="wallet"><Wallet className="h-4 w-4 mr-1" /> Wallet</TabsTrigger>
-              <TabsTrigger value="stock"><Package className="h-4 w-4 mr-1" /> Stock</TabsTrigger>
-              <TabsTrigger value="profile"><User className="h-4 w-4 mr-1" /> Profile</TabsTrigger>
-            </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            {activeTab === "home" ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {homeCards.map((c) => (
+                  <button key={c.tab} onClick={() => setActiveTab(c.tab)} className="text-left">
+                    <Card className="h-full shadow-sm transition-colors hover:bg-muted/40">
+                      <CardContent className="flex flex-col items-center gap-2 p-5 text-center">
+                        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                          <c.icon className="h-6 w-6 text-primary" />
+                        </span>
+                        <span className="text-sm font-semibold">{c.label}</span>
+                        <span className="text-xs text-muted-foreground truncate max-w-full">{c.sub}</span>
+                      </CardContent>
+                    </Card>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={() => setActiveTab("home")} className="mb-3 -ml-2 gap-1.5">
+                <ArrowLeft className="h-4 w-4" /> Home
+              </Button>
+            )}
+
             <TabsContent value="orders">
-              <DeliveryOrders orders={orders} userId={user.id} onRefresh={fetchData} quickFilter={quickFilter} />
+              <DeliveryOrders orders={orders} userId={user.id} onRefresh={fetchData} />
             </TabsContent>
             <TabsContent value="wallet">
               <DeliveryWallet
