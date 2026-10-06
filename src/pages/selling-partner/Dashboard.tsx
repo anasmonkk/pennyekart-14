@@ -562,14 +562,27 @@ const SellingPartnerDashboard = () => {
 
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-6">
-            <TabsTrigger value="products">Products</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="wallet">Wallet</TabsTrigger>
-            <TabsTrigger value="prime" className="gap-1"><Tag className="h-3.5 w-3.5" />Prime</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-          </TabsList>
+          {activeTab === "home" ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {homeCards.map((c) => (
+                <button key={c.tab} onClick={() => setActiveTab(c.tab)} className="text-left">
+                  <Card className="h-full shadow-sm transition-colors hover:bg-muted/40">
+                    <CardContent className="flex flex-col items-center gap-2 p-5 text-center">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                        <c.icon className="h-6 w-6 text-primary" />
+                      </span>
+                      <span className="text-sm font-semibold">{c.label}</span>
+                      <span className="text-xs text-muted-foreground truncate max-w-full">{c.sub}</span>
+                    </CardContent>
+                  </Card>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => setActiveTab("home")} className="mb-3 -ml-2 gap-1.5">
+              <ArrowLeft className="h-4 w-4" /> Home
+            </Button>
+          )}
 
           {/* PRODUCTS TAB */}
           <TabsContent value="products" className="space-y-4">
