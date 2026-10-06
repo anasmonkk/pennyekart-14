@@ -510,7 +510,7 @@ const DeliveryOrders = ({ orders, userId, onRefresh, quickFilter }: Props) => {
         </Card>
       </TabsContent>
     </Tabs>
-    <OrderDetailDialog order={detailOrder} open={!!detailOrder} onOpenChange={(v) => { if (!v) setDetailOrder(null); }} />
+    <OrderDetailDialog order={detailOrder} open={!!detailOrder} onOpenChange={(v) => { if (!v) setDetailOrder(null); }} deliveryStaffUserId={userId} />
     </>
   );
 };

@@ -1,5 +1,8 @@
 # Roadmap
 
+## Delivery staff customer location
+- [ ] Navigate to saved customer address pins and let assigned delivery staff save a newly captured delivery pin to the customer's address book.
+
 ## Dedicated selling-partner management
 - [ ] Expand the standalone admin area to include partner profile/business details, performance, products, wallet, and coverage in one place.
 - [ ] Confirm all admin links point to the standalone partner area, outside Users.

@@ -3,12 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Package, MapPin, Calendar, Navigation, XCircle, RotateCcw, Receipt } from "lucide-react";
+import { Package, MapPin, Calendar, Navigation, XCircle, RotateCcw, Receipt, LocateFixed, Loader2 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { explainPermission } from "@/lib/permissionPrompt";
 
 interface OrderItem {
   id?: string;
@@ -39,32 +40,100 @@ interface Props {
   statusLabel?: (status: string) => string;
   onCancel?: (orderId: string) => void;
   onRequestReturn?: (orderId: string) => void;
+  deliveryStaffUserId?: string;
 }
 
 const defaultStatusLabel = (s: string) => s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
 const CANCELLABLE = ["pending", "accepted", "confirmed", "packed", "shipped"];
 
-const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultStatusLabel, onCancel, onRequestReturn }: Props) => {
+const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultStatusLabel, onCancel, onRequestReturn, deliveryStaffUserId }: Props) => {
   const [customerLocation, setCustomerLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
+  const [capturedLocation, setCapturedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [capturingLocation, setCapturingLocation] = useState(false);
+  const [savingLocation, setSavingLocation] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
     setCustomerLocation(null);
-    if (!order?.user_id) return;
+    setCapturedLocation(null);
+    setLocationError(null);
+    if (!open || !order?.user_id) return;
     setLoadingLocation(true);
-    supabase
-      .from("profiles")
-      .select("latitude, longitude")
-      .eq("user_id", order.user_id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.latitude && data?.longitude) {
-          setCustomerLocation({ lat: data.latitude, lng: data.longitude });
+    let active = true;
+    const loadLocation = async () => {
+      if (deliveryStaffUserId) {
+        const { data, error } = await supabase.functions.invoke("delivery-order-location", {
+          body: { action: "get", order_id: order.id },
+        });
+        if (!active) return;
+        if (error) {
+          setLocationError("Could not load the customer’s saved map pin.");
+        } else if (data?.location && Number.isFinite(data.location.lat) && Number.isFinite(data.location.lng)) {
+          setCustomerLocation({ lat: data.location.lat, lng: data.location.lng });
         }
         setLoadingLocation(false);
-      });
-  }, [order?.user_id, open]);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("latitude, longitude")
+        .eq("user_id", order.user_id)
+        .maybeSingle();
+      if (!active) return;
+      if (data?.latitude != null && data?.longitude != null) {
+        setCustomerLocation({ lat: data.latitude, lng: data.longitude });
+      }
+      setLoadingLocation(false);
+    };
+    void loadLocation();
+    return () => { active = false; };
+  }, [order?.id, order?.user_id, open, deliveryStaffUserId]);
+
+  const captureDeliveryLocation = async () => {
+    if (!navigator.geolocation) {
+      setLocationError("Location is not available on this device.");
+      return;
+    }
+    const allowed = await explainPermission("location");
+    if (!allowed) return;
+    setLocationError(null);
+    setCapturingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setCapturedLocation({ lat: coords.latitude, lng: coords.longitude });
+        setCapturingLocation(false);
+      },
+      () => {
+        setLocationError("Could not get this phone’s location. Check location access and try again.");
+        setCapturingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  };
+
+  const saveCapturedLocation = async () => {
+    if (!order || !capturedLocation || !deliveryStaffUserId) return;
+    setSavingLocation(true);
+    setLocationError(null);
+    const { data, error } = await supabase.functions.invoke("delivery-order-location", {
+      body: {
+        action: "save",
+        order_id: order.id,
+        latitude: capturedLocation.lat,
+        longitude: capturedLocation.lng,
+      },
+    });
+    setSavingLocation(false);
+    if (error || !data?.ok) {
+      setLocationError(data?.error ?? "Could not save the location. Please try again.");
+      return;
+    }
+    setCustomerLocation(capturedLocation);
+    setCapturedLocation(null);
+  };
 
   if (!order) return null;
 
@@ -100,22 +169,47 @@ const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultSta
             </div>
           )}
 
-          {/* Google Maps Navigation */}
-          {customerLocation && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full gap-2"
-              onClick={() => {
-                window.open(
-                  `https://www.google.com/maps/dir/?api=1&destination=${customerLocation.lat},${customerLocation.lng}`,
-                  "_blank"
-                );
-              }}
-            >
-              <Navigation className="h-4 w-4 text-primary" />
-              Navigate to Customer (Google Maps)
-            </Button>
+          {/* Google Maps navigation and delivery-staff pin capture */}
+          {(customerLocation || deliveryStaffUserId) && (
+            <div className="space-y-2">
+              {customerLocation ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-2"
+                  onClick={() => window.open(
+                    `https://www.google.com/maps/dir/?api=1&destination=${customerLocation.lat},${customerLocation.lng}`,
+                    "_blank",
+                    "noopener,noreferrer"
+                  )}
+                >
+                  <Navigation className="h-4 w-4 text-primary" />
+                  Navigate to Customer (Google Maps)
+                </Button>
+              ) : deliveryStaffUserId && !loadingLocation ? (
+                <>
+                  <p className="text-sm text-muted-foreground">No saved map pin for this customer.</p>
+                  {!capturedLocation ? (
+                    <Button variant="outline" size="sm" className="w-full gap-2" onClick={captureDeliveryLocation} disabled={capturingLocation}>
+                      {capturingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4 text-primary" />}
+                      {capturingLocation ? "Getting phone location…" : "Capture delivery location"}
+                    </Button>
+                  ) : (
+                    <div className="space-y-2 rounded-md border p-3">
+                      <p className="text-xs text-muted-foreground">Captured pin: {capturedLocation.lat.toFixed(5)}, {capturedLocation.lng.toFixed(5)}</p>
+                      <Button size="sm" className="w-full" onClick={saveCapturedLocation} disabled={savingLocation || !order.user_id}>
+                        {savingLocation && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {savingLocation ? "Saving…" : "Save to customer address book"}
+                      </Button>
+                      {!order.user_id && <p className="text-xs text-destructive">This order has no linked customer account, so the pin cannot be saved.</p>}
+                    </div>
+                  )}
+                </>
+              ) : loadingLocation ? (
+                <p className="text-sm text-muted-foreground">Checking saved customer locations…</p>
+              ) : null}
+              {locationError && <p role="alert" className="text-xs text-destructive">{locationError}</p>}
+            </div>
           )}
 
           <Separator />
