@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Package, Plus, LogOut, Store, ShoppingCart, Wallet, Star, PackagePlus, Pencil, BarChart3, TrendingUp, MapPin, ArrowDownLeft, Clock, Settings, Tag, Truck, Eye, CheckCircle, XCircle, CircleDot, PauseCircle } from "lucide-react";
+import { Package, Plus, LogOut, Store, ShoppingCart, Wallet, Star, PackagePlus, Pencil, BarChart3, TrendingUp, MapPin, ArrowDownLeft, ArrowLeft, Clock, Settings, Tag, Truck, Eye, CheckCircle, XCircle, CircleDot, PauseCircle, User } from "lucide-react";
 import OrderDetailDialog from "@/components/OrderDetailDialog";
 import PennyPrimeCoupons from "@/components/selling-partner/PennyPrimeCoupons";
 import { useToast } from "@/hooks/use-toast";
@@ -106,7 +106,7 @@ const SellingPartnerDashboard = () => {
   const [addStockQty, setAddStockQty] = useState("");
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "products");
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "home");
   // Deep link from seller order push: ?tab=orders&order=<id>
   useEffect(() => {
     const oid = searchParams.get("order");
@@ -470,6 +470,16 @@ const SellingPartnerDashboard = () => {
 
   const pendingCount = orders.filter(o => !["delivered", "cancelled", "return_confirmed"].includes(o.status)).length;
 
+  // Simple launcher cards shown on the home screen
+  const homeCards = [
+    { tab: "products", label: "Products", icon: Package, sub: `${products.length} listed` },
+    { tab: "orders", label: "Orders", icon: ShoppingCart, sub: `${pendingCount} pending` },
+    { tab: "analytics", label: "Analytics", icon: BarChart3, sub: "Sales insights" },
+    { tab: "wallet", label: "Wallet", icon: Wallet, sub: `₹${walletRevenue.toLocaleString("en-IN")}` },
+    { tab: "prime", label: "Prime", icon: Tag, sub: "Coupons & agents" },
+    { tab: "profile", label: "Profile", icon: User, sub: profile?.full_name || "Your details" },
+  ];
+
   const toggleAvailability = async () => {
     if (!profile?.user_id) return;
     const next = !available;
@@ -518,48 +528,30 @@ const SellingPartnerDashboard = () => {
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Products</CardTitle>
-              <Package className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent><p className="text-2xl font-bold">{products.length}</p></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Approved</CardTitle>
-              <Store className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent><p className="text-2xl font-bold">{products.filter(p => p.is_approved).length}</p></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
-              <Clock className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent><p className="text-2xl font-bold">{pendingCount}</p></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
-              <CheckCircle className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent><p className="text-2xl font-bold">{deliveredOrders.length}</p></CardContent>
-          </Card>
-        </div>
 
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-6">
-            <TabsTrigger value="products">Products</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="wallet">Wallet</TabsTrigger>
-            <TabsTrigger value="prime" className="gap-1"><Tag className="h-3.5 w-3.5" />Prime</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-          </TabsList>
+          {activeTab === "home" ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {homeCards.map((c) => (
+                <button key={c.tab} onClick={() => setActiveTab(c.tab)} className="text-left">
+                  <Card className="h-full shadow-sm transition-colors hover:bg-muted/40">
+                    <CardContent className="flex flex-col items-center gap-2 p-5 text-center">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                        <c.icon className="h-6 w-6 text-primary" />
+                      </span>
+                      <span className="text-sm font-semibold">{c.label}</span>
+                      <span className="text-xs text-muted-foreground truncate max-w-full">{c.sub}</span>
+                    </CardContent>
+                  </Card>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => setActiveTab("home")} className="mb-3 -ml-2 gap-1.5">
+              <ArrowLeft className="h-4 w-4" /> Home
+            </Button>
+          )}
 
           {/* PRODUCTS TAB */}
           <TabsContent value="products" className="space-y-4">
