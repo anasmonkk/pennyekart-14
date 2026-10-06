@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Package, Plus, LogOut, Store, ShoppingCart, Wallet, Star, PackagePlus, Pencil, BarChart3, TrendingUp, MapPin, ArrowDownLeft, Clock, Settings, Tag, Truck, Eye, CheckCircle, XCircle, CircleDot, PauseCircle } from "lucide-react";
+import { Package, Plus, LogOut, Store, ShoppingCart, Wallet, Star, PackagePlus, Pencil, BarChart3, TrendingUp, MapPin, ArrowDownLeft, ArrowLeft, Clock, Settings, Tag, Truck, Eye, CheckCircle, XCircle, CircleDot, PauseCircle, User } from "lucide-react";
 import OrderDetailDialog from "@/components/OrderDetailDialog";
 import PennyPrimeCoupons from "@/components/selling-partner/PennyPrimeCoupons";
 import { useToast } from "@/hooks/use-toast";
@@ -106,7 +106,7 @@ const SellingPartnerDashboard = () => {
   const [addStockQty, setAddStockQty] = useState("");
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "products");
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "home");
   // Deep link from seller order push: ?tab=orders&order=<id>
   useEffect(() => {
     const oid = searchParams.get("order");
