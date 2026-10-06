@@ -528,37 +528,6 @@ const SellingPartnerDashboard = () => {
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Products</CardTitle>
-              <Package className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent><p className="text-2xl font-bold">{products.length}</p></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Approved</CardTitle>
-              <Store className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent><p className="text-2xl font-bold">{products.filter(p => p.is_approved).length}</p></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
-              <Clock className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent><p className="text-2xl font-bold">{pendingCount}</p></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
-              <CheckCircle className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent><p className="text-2xl font-bold">{deliveredOrders.length}</p></CardContent>
-          </Card>
-        </div>
 
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
