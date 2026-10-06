@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Package, Eye, CheckCircle2 } from "lucide-react";
 import OrderDetailDialog from "@/components/OrderDetailDialog";
+import DeliveryOrderNotificationDialog from "@/components/delivery/DeliveryOrderNotificationDialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface PendingOrder {
   id: string;
@@ -32,7 +34,7 @@ const PENDING_STATUSES: Record<Props["role"], string[]> = {
 
 /** Accepted but not yet finished — these get a "Finish" button. */
 const IN_PROGRESS_STATUSES: Record<Props["role"], string[]> = {
-  delivery: ["accepted", "out_for_delivery"],
+  delivery: ["accepted", "pickup", "shipped", "out_for_delivery"],
   seller: ["seller_accepted", "self_delivery_pickup", "self_delivery_shipped"],
 };
 
@@ -44,6 +46,7 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
   const [detailOrder, setDetailOrder] = useState<PendingOrder | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const prevCountRef = useRef(0);
+  const { toast } = useToast();
 
   const playSound = () => {
     try {
@@ -127,7 +130,10 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
     setBusyId(orderId);
     const { error } = await supabase.from("orders").update({ status } as any).eq("id", orderId);
     setBusyId(null);
-    if (error) return false;
+    if (error) {
+      toast({ title: "Order not updated", description: "Please try again.", variant: "destructive" });
+      return false;
+    }
     onRefresh?.();
     await fetchPending();
     return true;
@@ -184,20 +190,25 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
     <>
       {/* Floating notification bell */}
       {totalBadge > 0 && (
-        <button
+        <Button
+          aria-label={`Open order notifications (${totalBadge})`}
           onClick={() => setOpen(true)}
-          className={`fixed bottom-20 right-4 z-50 flex items-center justify-center h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg transition-all ${
-            undismissedOrders.length > 0 ? "animate-bounce hover:animate-none" : ""
+          className={`fixed bottom-20 right-4 z-50 flex items-center justify-center h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg transition-all ${role === "delivery" ? "delivery-blue delivery-gradient" : ""} ${
+            undismissedOrders.length > 0 ? "motion-safe:animate-bounce hover:animate-none" : ""
           }`}
         >
           <Bell className="h-6 w-6" />
           <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
             {totalBadge}
           </span>
-        </button>
+        </Button>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      {role === "delivery" ? <DeliveryOrderNotificationDialog
+        open={open} onOpenChange={setOpen} userId={userId} pending={pendingOrders} active={inProgressOrders}
+        dismissedIds={dismissedIds} busyId={busyId} onAccept={handleAccept} onFinish={handleFinish}
+        onLater={handleDismiss} onDetail={setDetailOrder}
+      /> : <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -290,7 +301,7 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
             )}
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
       <OrderDetailDialog order={detailOrder} open={!!detailOrder} onOpenChange={(v) => { if (!v) setDetailOrder(null); }} />
     </>
   );
