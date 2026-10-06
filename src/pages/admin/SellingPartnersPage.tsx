@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Store, Phone, Mail, Package, Eye, MapPin, Wallet, User, Calendar, CheckCircle, Clock } from "lucide-react";
+import { Search, Store, Phone, Mail, Package, Eye, MapPin, Wallet, User, Calendar, CheckCircle, Clock, Image as ImageIcon, Video } from "lucide-react";
 
 interface SellingPartner {
   id: string;
@@ -33,16 +33,28 @@ interface SellingPartner {
 interface SellerProduct {
   id: string;
   name: string;
+  description: string | null;
   price: number;
   stock: number;
   is_active: boolean;
   is_approved: boolean;
   is_featured: boolean;
+  is_grocery: boolean;
+  coming_soon: boolean;
   image_url: string | null;
+  image_url_2: string | null;
+  image_url_3: string | null;
+  video_url: string | null;
   category: string | null;
   mrp: number;
   purchase_rate: number;
   discount_rate: number;
+  wallet_points: number | null;
+  margin_percentage: number | null;
+  featured_discount_type: string | null;
+  featured_discount_value: number | null;
+  created_at: string;
+  updated_at: string;
 }
 
 interface Godown {
@@ -70,6 +82,8 @@ const SellingPartnersPage = () => {
   const [walletPartner, setWalletPartner] = useState<SellingPartner | null>(null);
   const [settleAmount, setSettleAmount] = useState("");
   const [detailPartner, setDetailPartner] = useState<SellingPartner | null>(null);
+  const [detailProduct, setDetailProduct] = useState<SellerProduct | null>(null);
+  const [productImageIdx, setProductImageIdx] = useState(0);
   const { toast } = useToast();
 
   const fetchPartners = async () => {
