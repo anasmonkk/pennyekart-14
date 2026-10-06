@@ -455,6 +455,99 @@ const SellingPartnersPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Product Detail Dialog */}
+      <Dialog open={!!detailProduct} onOpenChange={() => setDetailProduct(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          {detailProduct && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-primary" /> {detailProduct.name}
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                {/* Image gallery */}
+                {(() => {
+                  const images = [detailProduct.image_url, detailProduct.image_url_2, detailProduct.image_url_3].filter(Boolean) as string[];
+                  return (
+                    <div className="space-y-2">
+                      {images.length > 0 ? (
+                        <>
+                          <div className="aspect-video w-full overflow-hidden rounded-lg border bg-muted flex items-center justify-center">
+                            <img src={images[productImageIdx]} alt={detailProduct.name} className="max-h-full max-w-full object-contain" />
+                          </div>
+                          {images.length > 1 && (
+                            <div className="flex gap-2">
+                              {images.map((img, i) => (
+                                <button
+                                  key={i}
+                                  type="button"
+                                  onClick={() => setProductImageIdx(i)}
+                                  className={`h-16 w-16 overflow-hidden rounded border-2 ${i === productImageIdx ? "border-primary" : "border-transparent opacity-70"}`}
+                                >
+                                  <img src={img} alt="" className="h-full w-full object-cover" />
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="aspect-video w-full rounded-lg border bg-muted flex flex-col items-center justify-center text-muted-foreground">
+                          <ImageIcon className="h-8 w-8 mb-1" />
+                          <span className="text-sm">No images</span>
+                        </div>
+                      )}
+                      {detailProduct.video_url && (
+                        <a
+                          href={detailProduct.video_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                        >
+                          <Video className="h-4 w-4" /> Watch product video
+                        </a>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Status badges */}
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant={detailProduct.is_approved ? "default" : "secondary"}>{detailProduct.is_approved ? "Approved" : "Not Approved"}</Badge>
+                  <Badge variant="outline">{detailProduct.is_active ? "Active" : "Inactive"}</Badge>
+                  {detailProduct.is_featured && <Badge variant="default">Featured</Badge>}
+                  {detailProduct.coming_soon && <Badge variant="secondary">Coming Soon</Badge>}
+                  {detailProduct.is_grocery && <Badge variant="outline">Grocery</Badge>}
+                  <Badge variant={detailProduct.stock > 0 ? "outline" : "destructive"}>{detailProduct.stock > 0 ? `In Stock (${detailProduct.stock})` : "Out of Stock"}</Badge>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <p className="text-muted-foreground text-xs mb-1">Description</p>
+                  <p className="text-sm whitespace-pre-wrap">{detailProduct.description || "—"}</p>
+                </div>
+
+                {/* Pricing & details */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                  <DetailItem label="Selling Price" value={`₹${detailProduct.price}`} />
+                  <DetailItem label="MRP" value={`₹${detailProduct.mrp}`} />
+                  <DetailItem label="Purchase Rate" value={`₹${detailProduct.purchase_rate}`} />
+                  <DetailItem label="Discount" value={`₹${detailProduct.discount_rate}`} />
+                  <DetailItem label="Stock" value={detailProduct.stock.toString()} />
+                  <DetailItem label="Category" value={detailProduct.category} />
+                  <DetailItem label="Wallet Points" value={detailProduct.wallet_points != null ? detailProduct.wallet_points.toString() : null} />
+                  <DetailItem label="Margin %" value={detailProduct.margin_percentage != null ? `${detailProduct.margin_percentage}%` : null} />
+                  <DetailItem label="Featured Discount" value={detailProduct.featured_discount_type ? `${detailProduct.featured_discount_type}: ${detailProduct.featured_discount_value ?? "—"}` : null} />
+                  <DetailItem label="Added" value={new Date(detailProduct.created_at).toLocaleDateString()} />
+                  <DetailItem label="Last Updated" value={new Date(detailProduct.updated_at).toLocaleDateString()} />
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Godown Assignment Dialog */}
       <Dialog open={!!godownPartner} onOpenChange={() => setGodownPartner(null)}>
         <DialogContent>
