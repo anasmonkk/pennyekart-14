@@ -19,12 +19,33 @@ Deno.serve(async (req) => {
   }
 
   const action = body.action;
+  const admin = adminClient();
+  if (action === "contacts") {
+    const ids = body.order_ids;
+    if (!Array.isArray(ids) || ids.length > 100 || !ids.every((id) => typeof id === "string" && UUID.test(id))) {
+      return json({ error: "Invalid orders." }, 400);
+    }
+    if (!ids.length) return json({ contacts: {} });
+    const { data: assigned, error: assignedError } = await admin.from("orders")
+      .select("id, user_id").in("id", ids).eq("assigned_delivery_staff_id", staffUserId);
+    if (assignedError) return json({ error: "Could not load order contacts." }, 500);
+    const userIds = [...new Set((assigned ?? []).flatMap((o) => o.user_id ? [o.user_id] : []))];
+    if (!userIds.length) return json({ contacts: {} });
+    const { data: profiles, error: contactsError } = await admin.from("profiles")
+      .select("user_id, full_name, mobile_number").in("user_id", userIds);
+    if (contactsError) return json({ error: "Could not load customer contacts." }, 500);
+    const contacts: Record<string, unknown> = {};
+    for (const order of assigned ?? []) {
+      const profile = profiles?.find((p) => p.user_id === order.user_id);
+      if (profile) contacts[order.id] = { name: profile.full_name, phone: profile.mobile_number };
+    }
+    return json({ contacts });
+  }
   const orderId = typeof body.order_id === "string" ? body.order_id : "";
   if (!UUID.test(orderId) || (action !== "get" && action !== "save")) {
     return json({ error: "Invalid order or action." }, 400);
   }
 
-  const admin = adminClient();
   const { data: order, error: orderError } = await admin
     .from("orders")
     .select("id, user_id, assigned_delivery_staff_id, shipping_address")
