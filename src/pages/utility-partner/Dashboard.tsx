@@ -295,18 +295,40 @@ const UtilityPartnerDashboard = () => {
       </header>
 
       <main className="container space-y-4 py-5">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">My Services</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{services.length}</CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Approved</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{services.filter((s) => s.is_approved).length}</CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Pending Requests</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{pending}</CardContent></Card>
+        {/* Greeting */}
+        <div className="rounded-2xl bg-gradient-to-br from-primary to-primary/70 p-5 text-primary-foreground">
+          <p className="text-sm opacity-90">Hi {profile?.full_name?.split(" ")[0] || "Partner"} 👋</p>
+          <h2 className="text-xl font-bold">
+            {pending > 0 ? `${pending} service request${pending > 1 ? "s" : ""} need your attention` : "All service requests are up to date"}
+          </h2>
+          <p className="mt-1 text-xs opacity-90">
+            Status: {available ? "Available for new bookings" : "Busy — new bookings may be delayed"}
+          </p>
         </div>
 
-        <Tabs defaultValue="services">
-          <TabsList>
-            <TabsTrigger value="services">My Services</TabsTrigger>
-            <TabsTrigger value="requests">Requests <Badge variant="outline" className="ml-2">{requests.length}</Badge></TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          {activeTab === "home" ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {homeCards.map((c) => (
+                <button key={c.tab} onClick={() => setActiveTab(c.tab)} className="text-left">
+                  <Card className="h-full shadow-sm transition-colors hover:bg-muted/40">
+                    <CardContent className="flex flex-col items-center gap-2 p-5 text-center">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                        <c.icon className="h-6 w-6 text-primary" />
+                      </span>
+                      <span className="text-sm font-semibold">{c.label}</span>
+                      <span className="text-xs text-muted-foreground truncate max-w-full">{c.sub}</span>
+                    </CardContent>
+                  </Card>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => setActiveTab("home")} className="mb-3 -ml-2 gap-1.5">
+              <ArrowLeft className="h-4 w-4" /> Home
+            </Button>
+          )}
+
 
           <TabsContent value="profile" className="mt-4 space-y-3">
             <Card>
