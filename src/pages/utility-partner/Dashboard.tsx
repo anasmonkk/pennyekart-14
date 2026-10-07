@@ -301,6 +301,57 @@ const UtilityPartnerDashboard = () => {
           </TabsList>
 
           <TabsContent value="profile" className="mt-4 space-y-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base"><User className="h-5 w-5" /> My Profile</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={saveProfile} className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="up_name">Full Name</Label>
+                    <Input id="up_name" value={profileForm.full_name} onChange={(e) => setProfileForm((f) => ({ ...f, full_name: e.target.value }))} maxLength={100} />
+                  </div>
+                  <div>
+                    <Label htmlFor="up_mobile">Mobile Number</Label>
+                    <Input id="up_mobile" type="tel" value={profileForm.mobile_number} onChange={(e) => setProfileForm((f) => ({ ...f, mobile_number: e.target.value.replace(/\D/g, "").slice(0, 10) }))} maxLength={10} />
+                  </div>
+                  <div>
+                    <Label htmlFor="up_dob">Date of Birth</Label>
+                    <Input id="up_dob" type="date" value={profileForm.date_of_birth} onChange={(e) => setProfileForm((f) => ({ ...f, date_of_birth: e.target.value }))} max={new Date().toISOString().split("T")[0]} />
+                  </div>
+                  <div>
+                    <Label>District</Label>
+                    <Select value={districtId} onValueChange={(v) => { setDistrictId(v); setProfileForm((f) => ({ ...f, local_body_id: "", ward_number: "" })); }}>
+                      <SelectTrigger><SelectValue placeholder="Select district" /></SelectTrigger>
+                      <SelectContent>
+                        {districts.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Panchayath / Municipality</Label>
+                    <Select value={profileForm.local_body_id} onValueChange={(v) => setProfileForm((f) => ({ ...f, local_body_id: v, ward_number: "" }))} disabled={!districtId}>
+                      <SelectTrigger><SelectValue placeholder="Select panchayath" /></SelectTrigger>
+                      <SelectContent>
+                        {districtLocalBodies.map((l) => <SelectItem key={l.id} value={l.id}>{l.name} ({l.body_type})</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Ward</Label>
+                    <Select value={profileForm.ward_number} onValueChange={(v) => setProfileForm((f) => ({ ...f, ward_number: v }))} disabled={!profileForm.local_body_id}>
+                      <SelectTrigger><SelectValue placeholder="Select ward" /></SelectTrigger>
+                      <SelectContent>
+                        {wardOptions.map((w) => <SelectItem key={w} value={String(w)}>Ward {w}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Button type="submit" disabled={profileSaving}>{profileSaving ? "Saving..." : "Save Profile"}</Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
             <div className="rounded-lg border bg-card p-4 space-y-3">
               <p className="text-sm font-semibold">Notifications</p>
               <p className="text-xs text-muted-foreground">Get alerts on your phone when a customer books your service.</p>
