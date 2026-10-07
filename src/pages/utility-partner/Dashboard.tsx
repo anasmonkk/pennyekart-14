@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Wrench, LogOut, Phone, Home, Package, Check, CheckCircle2, Bell, User } from "lucide-react";
+import { Plus, Pencil, Trash2, Wrench, LogOut, Phone, Home, Package, Check, CheckCircle2, Bell, User, ArrowLeft } from "lucide-react";
 import VariantManager from "@/components/utility/VariantManager";
 import PartnerAvatar from "@/components/partner/PartnerAvatar";
 import {
@@ -49,6 +49,7 @@ const UtilityPartnerDashboard = () => {
   const [districts, setDistricts] = useState<{ id: string; name: string }[]>([]);
   const [editLocalBodies, setEditLocalBodies] = useState<{ id: string; name: string; body_type: string; ward_count: number; district_id: string }[]>([]);
   const [districtId, setDistrictId] = useState("");
+  const [activeTab, setActiveTab] = useState("home");
 
   useEffect(() => {
     supabase.from("locations_districts").select("id, name").eq("is_active", true).order("sort_order")
@@ -200,6 +201,13 @@ const UtilityPartnerDashboard = () => {
   const openRequests = requests.filter((r) => OPEN_STATUSES.includes(r.status));
   const closedRequests = requests.filter((r) => !OPEN_STATUSES.includes(r.status));
 
+  // Simple launcher cards shown on the home screen
+  const homeCards = [
+    { tab: "services", label: "Services", icon: Wrench, sub: `${services.length} listed` },
+    { tab: "requests", label: "Requests", icon: Bell, sub: `${pending} pending` },
+    { tab: "profile", label: "Profile", icon: User, sub: profile?.full_name || "Your details" },
+  ];
+
   const toggleAvailability = async (v: boolean) => {
     if (!profile?.user_id) return;
     setAvailable(v);
@@ -287,18 +295,40 @@ const UtilityPartnerDashboard = () => {
       </header>
 
       <main className="container space-y-4 py-5">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">My Services</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{services.length}</CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Approved</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{services.filter((s) => s.is_approved).length}</CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Pending Requests</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{pending}</CardContent></Card>
+        {/* Greeting */}
+        <div className="rounded-2xl bg-gradient-to-br from-primary to-primary/70 p-5 text-primary-foreground">
+          <p className="text-sm opacity-90">Hi {profile?.full_name?.split(" ")[0] || "Partner"} 👋</p>
+          <h2 className="text-xl font-bold">
+            {pending > 0 ? `${pending} service request${pending > 1 ? "s" : ""} need your attention` : "All service requests are up to date"}
+          </h2>
+          <p className="mt-1 text-xs opacity-90">
+            Status: {available ? "Available for new bookings" : "Busy — new bookings may be delayed"}
+          </p>
         </div>
 
-        <Tabs defaultValue="services">
-          <TabsList>
-            <TabsTrigger value="services">My Services</TabsTrigger>
-            <TabsTrigger value="requests">Requests <Badge variant="outline" className="ml-2">{requests.length}</Badge></TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          {activeTab === "home" ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {homeCards.map((c) => (
+                <button key={c.tab} onClick={() => setActiveTab(c.tab)} className="text-left">
+                  <Card className="h-full shadow-sm transition-colors hover:bg-muted/40">
+                    <CardContent className="flex flex-col items-center gap-2 p-5 text-center">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                        <c.icon className="h-6 w-6 text-primary" />
+                      </span>
+                      <span className="text-sm font-semibold">{c.label}</span>
+                      <span className="text-xs text-muted-foreground truncate max-w-full">{c.sub}</span>
+                    </CardContent>
+                  </Card>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => setActiveTab("home")} className="mb-3 -ml-2 gap-1.5">
+              <ArrowLeft className="h-4 w-4" /> Home
+            </Button>
+          )}
+
 
           <TabsContent value="profile" className="mt-4 space-y-3">
             <Card>
