@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Wrench, LogOut, Phone, Home, Package, Check, CheckCircle2, Bell, User, ArrowLeft } from "lucide-react";
 import VariantManager from "@/components/utility/VariantManager";
+import UtilityRequestNotificationDialog from "@/components/utility/UtilityRequestNotificationDialog";
 import PartnerAvatar from "@/components/partner/PartnerAvatar";
 import {
   PRICE_UNITS, REQUEST_STATUSES, formatServicePrice, statusLabel, unitsForCategoryType,
@@ -529,60 +530,23 @@ const UtilityPartnerDashboard = () => {
       )}
 
       {/* New request popup */}
-      <Dialog open={alertOpen} onOpenChange={setAlertOpen}>
-        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" />
-              New requests ({pending})
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            {requests.filter((r) => r.status === "pending").map((r) => (
-              <div key={r.id} className="space-y-1 rounded-lg border bg-accent/30 p-3">
-                <p className="font-semibold">{r.contact_name}</p>
-                <p className="flex items-center gap-1 text-xs text-muted-foreground"><Phone className="h-3 w-3" />{r.contact_phone}</p>
-                <p className="text-xs text-muted-foreground">{serviceName(r.service_id)}</p>
-                {r.variant_label && (
-                  <p className="text-sm font-medium text-primary">
-                    {r.variant_label} × {r.quantity ?? 1}{r.total_amount ? ` = ₹${Number(r.total_amount)}` : ""}
-                  </p>
-                )}
-                {r.address && <p className="text-sm">{r.address}</p>}
-                {r.latitude != null && r.longitude != null && (
-                  <a
-                    className="inline-flex items-center gap-1 text-xs font-medium text-primary underline"
-                    href={`https://www.google.com/maps/search/?api=1&query=${r.latitude},${r.longitude}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open location on map
-                  </a>
-                )}
-                <div className="flex gap-2 pt-1">
-                  <Button size="sm" className="flex-1" onClick={() => setRequestStatus(r.id, "assigned")}>
-                    <Check className="mr-1.5 h-3.5 w-3.5" /> Accept
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setAlertOpen(false)}>Later</Button>
-                </div>
-              </div>
-            ))}
-            {pending === 0 && <p className="py-6 text-center text-muted-foreground">No pending requests</p>}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <UtilityRequestNotificationDialog
+        open={alertOpen} onOpenChange={setAlertOpen} requests={requests}
+        serviceName={serviceName} onAccept={(id) => setRequestStatus(id, "assigned")}
+      />
 
       {/* Floating bell */}
       {pending > 0 && !alertOpen && (
-        <button
+        <Button
+          aria-label={`Open service request notifications (${pending})`}
           onClick={() => setAlertOpen(true)}
-          className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg"
+          className="delivery-blue delivery-gradient fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full text-primary-foreground shadow-lg"
         >
           <Bell className="h-6 w-6" />
           <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
             {pending}
           </span>
-        </button>
+        </Button>
       )}
     </div>
 
