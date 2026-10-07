@@ -201,6 +201,13 @@ const UtilityPartnerDashboard = () => {
   const openRequests = requests.filter((r) => OPEN_STATUSES.includes(r.status));
   const closedRequests = requests.filter((r) => !OPEN_STATUSES.includes(r.status));
 
+  // Simple launcher cards shown on the home screen
+  const homeCards = [
+    { tab: "services", label: "Services", icon: Wrench, sub: `${services.length} listed` },
+    { tab: "requests", label: "Requests", icon: Bell, sub: `${pending} pending` },
+    { tab: "profile", label: "Profile", icon: User, sub: profile?.full_name || "Your details" },
+  ];
+
   const toggleAvailability = async (v: boolean) => {
     if (!profile?.user_id) return;
     setAvailable(v);
