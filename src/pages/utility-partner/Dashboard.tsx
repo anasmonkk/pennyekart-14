@@ -428,7 +428,6 @@ const UtilityPartnerDashboard = () => {
           </span>
         </button>
       )}
-      <AccountSettingsSection />
     </div>
 
   );
