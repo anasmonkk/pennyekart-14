@@ -44,6 +44,56 @@ const UtilityPartnerDashboard = () => {
   const [available, setAvailable] = useState<boolean>((profile as any)?.is_available ?? true);
   useEffect(() => { setAvailable((profile as any)?.is_available ?? true); }, [(profile as any)?.is_available]);
   const prevPendingRef = useRef(-1);
+  const [profileForm, setProfileForm] = useState({ full_name: "", mobile_number: "", date_of_birth: "", local_body_id: "", ward_number: "" });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [districts, setDistricts] = useState<{ id: string; name: string }[]>([]);
+  const [editLocalBodies, setEditLocalBodies] = useState<{ id: string; name: string; body_type: string; ward_count: number; district_id: string }[]>([]);
+  const [districtId, setDistrictId] = useState("");
+
+  useEffect(() => {
+    supabase.from("locations_districts").select("id, name").eq("is_active", true).order("sort_order")
+      .then(({ data }) => setDistricts((data as { id: string; name: string }[]) ?? []));
+    supabase.from("locations_local_bodies").select("id, name, body_type, ward_count, district_id").eq("is_active", true).order("name")
+      .then(({ data }) => setEditLocalBodies((data as { id: string; name: string; body_type: string; ward_count: number; district_id: string }[]) ?? []));
+  }, []);
+
+  useEffect(() => {
+    if (!profile) return;
+    const p = profile as any;
+    setProfileForm({
+      full_name: p.full_name ?? "",
+      mobile_number: p.mobile_number ?? "",
+      date_of_birth: p.date_of_birth ?? "",
+      local_body_id: p.local_body_id ?? "",
+      ward_number: p.ward_number ? String(p.ward_number) : "",
+    });
+  }, [profile]);
+
+  // Default the district dropdown from the saved panchayath
+  useEffect(() => {
+    if (!profile?.local_body_id || editLocalBodies.length === 0) return;
+    const lb = editLocalBodies.find((l) => l.id === profile.local_body_id);
+    if (lb) setDistrictId(lb.district_id);
+  }, [profile?.local_body_id, editLocalBodies.length]);
+
+  const districtLocalBodies = editLocalBodies.filter((l) => l.district_id === districtId);
+  const wardOptions = Array.from({ length: editLocalBodies.find((l) => l.id === profileForm.local_body_id)?.ward_count ?? 0 }, (_, i) => i + 1);
+
+  const saveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile?.user_id) return;
+    setProfileSaving(true);
+    const { error } = await supabase.from("profiles").update({
+      full_name: profileForm.full_name.trim() || null,
+      mobile_number: profileForm.mobile_number.trim() || null,
+      date_of_birth: profileForm.date_of_birth || null,
+      local_body_id: profileForm.local_body_id || null,
+      ward_number: profileForm.ward_number ? Number(profileForm.ward_number) : null,
+    }).eq("user_id", profile.user_id);
+    setProfileSaving(false);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else toast({ title: "Profile updated successfully!" });
+  };
 
 
 
