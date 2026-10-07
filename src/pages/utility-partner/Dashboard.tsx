@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Wrench, LogOut, Phone, Home, Package, Check, CheckCircle2, Bell } from "lucide-react";
+import { Plus, Pencil, Trash2, Wrench, LogOut, Phone, Home, Package, Check, CheckCircle2, Bell, User } from "lucide-react";
 import VariantManager from "@/components/utility/VariantManager";
 import PartnerAvatar from "@/components/partner/PartnerAvatar";
 import {
@@ -44,6 +44,56 @@ const UtilityPartnerDashboard = () => {
   const [available, setAvailable] = useState<boolean>((profile as any)?.is_available ?? true);
   useEffect(() => { setAvailable((profile as any)?.is_available ?? true); }, [(profile as any)?.is_available]);
   const prevPendingRef = useRef(-1);
+  const [profileForm, setProfileForm] = useState({ full_name: "", mobile_number: "", date_of_birth: "", local_body_id: "", ward_number: "" });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [districts, setDistricts] = useState<{ id: string; name: string }[]>([]);
+  const [editLocalBodies, setEditLocalBodies] = useState<{ id: string; name: string; body_type: string; ward_count: number; district_id: string }[]>([]);
+  const [districtId, setDistrictId] = useState("");
+
+  useEffect(() => {
+    supabase.from("locations_districts").select("id, name").eq("is_active", true).order("sort_order")
+      .then(({ data }) => setDistricts((data as { id: string; name: string }[]) ?? []));
+    supabase.from("locations_local_bodies").select("id, name, body_type, ward_count, district_id").eq("is_active", true).order("name")
+      .then(({ data }) => setEditLocalBodies((data as { id: string; name: string; body_type: string; ward_count: number; district_id: string }[]) ?? []));
+  }, []);
+
+  useEffect(() => {
+    if (!profile) return;
+    const p = profile as any;
+    setProfileForm({
+      full_name: p.full_name ?? "",
+      mobile_number: p.mobile_number ?? "",
+      date_of_birth: p.date_of_birth ?? "",
+      local_body_id: p.local_body_id ?? "",
+      ward_number: p.ward_number ? String(p.ward_number) : "",
+    });
+  }, [profile]);
+
+  // Default the district dropdown from the saved panchayath
+  useEffect(() => {
+    if (!profile?.local_body_id || editLocalBodies.length === 0) return;
+    const lb = editLocalBodies.find((l) => l.id === profile.local_body_id);
+    if (lb) setDistrictId(lb.district_id);
+  }, [profile?.local_body_id, editLocalBodies.length]);
+
+  const districtLocalBodies = editLocalBodies.filter((l) => l.district_id === districtId);
+  const wardOptions = Array.from({ length: editLocalBodies.find((l) => l.id === profileForm.local_body_id)?.ward_count ?? 0 }, (_, i) => i + 1);
+
+  const saveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile?.user_id) return;
+    setProfileSaving(true);
+    const { error } = await supabase.from("profiles").update({
+      full_name: profileForm.full_name.trim() || null,
+      mobile_number: profileForm.mobile_number.trim() || null,
+      date_of_birth: profileForm.date_of_birth || null,
+      local_body_id: profileForm.local_body_id || null,
+      ward_number: profileForm.ward_number ? Number(profileForm.ward_number) : null,
+    }).eq("user_id", profile.user_id);
+    setProfileSaving(false);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else toast({ title: "Profile updated successfully!" });
+  };
 
 
 
@@ -251,6 +301,57 @@ const UtilityPartnerDashboard = () => {
           </TabsList>
 
           <TabsContent value="profile" className="mt-4 space-y-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base"><User className="h-5 w-5" /> My Profile</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={saveProfile} className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="up_name">Full Name</Label>
+                    <Input id="up_name" value={profileForm.full_name} onChange={(e) => setProfileForm((f) => ({ ...f, full_name: e.target.value }))} maxLength={100} />
+                  </div>
+                  <div>
+                    <Label htmlFor="up_mobile">Mobile Number</Label>
+                    <Input id="up_mobile" type="tel" value={profileForm.mobile_number} onChange={(e) => setProfileForm((f) => ({ ...f, mobile_number: e.target.value.replace(/\D/g, "").slice(0, 10) }))} maxLength={10} />
+                  </div>
+                  <div>
+                    <Label htmlFor="up_dob">Date of Birth</Label>
+                    <Input id="up_dob" type="date" value={profileForm.date_of_birth} onChange={(e) => setProfileForm((f) => ({ ...f, date_of_birth: e.target.value }))} max={new Date().toISOString().split("T")[0]} />
+                  </div>
+                  <div>
+                    <Label>District</Label>
+                    <Select value={districtId} onValueChange={(v) => { setDistrictId(v); setProfileForm((f) => ({ ...f, local_body_id: "", ward_number: "" })); }}>
+                      <SelectTrigger><SelectValue placeholder="Select district" /></SelectTrigger>
+                      <SelectContent>
+                        {districts.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Panchayath / Municipality</Label>
+                    <Select value={profileForm.local_body_id} onValueChange={(v) => setProfileForm((f) => ({ ...f, local_body_id: v, ward_number: "" }))} disabled={!districtId}>
+                      <SelectTrigger><SelectValue placeholder="Select panchayath" /></SelectTrigger>
+                      <SelectContent>
+                        {districtLocalBodies.map((l) => <SelectItem key={l.id} value={l.id}>{l.name} ({l.body_type})</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Ward</Label>
+                    <Select value={profileForm.ward_number} onValueChange={(v) => setProfileForm((f) => ({ ...f, ward_number: v }))} disabled={!profileForm.local_body_id}>
+                      <SelectTrigger><SelectValue placeholder="Select ward" /></SelectTrigger>
+                      <SelectContent>
+                        {wardOptions.map((w) => <SelectItem key={w} value={String(w)}>Ward {w}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Button type="submit" disabled={profileSaving}>{profileSaving ? "Saving..." : "Save Profile"}</Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
             <div className="rounded-lg border bg-card p-4 space-y-3">
               <p className="text-sm font-semibold">Notifications</p>
               <p className="text-xs text-muted-foreground">Get alerts on your phone when a customer books your service.</p>
