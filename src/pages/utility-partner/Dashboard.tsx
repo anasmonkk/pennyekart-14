@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Wrench, LogOut, Phone, Home, Package, Check, CheckCircle2, Bell, User } from "lucide-react";
+import { Plus, Pencil, Trash2, Wrench, LogOut, Phone, Home, Package, Check, CheckCircle2, Bell, User, ArrowLeft } from "lucide-react";
 import VariantManager from "@/components/utility/VariantManager";
 import PartnerAvatar from "@/components/partner/PartnerAvatar";
 import {
@@ -49,6 +49,7 @@ const UtilityPartnerDashboard = () => {
   const [districts, setDistricts] = useState<{ id: string; name: string }[]>([]);
   const [editLocalBodies, setEditLocalBodies] = useState<{ id: string; name: string; body_type: string; ward_count: number; district_id: string }[]>([]);
   const [districtId, setDistrictId] = useState("");
+  const [activeTab, setActiveTab] = useState("home");
 
   useEffect(() => {
     supabase.from("locations_districts").select("id, name").eq("is_active", true).order("sort_order")
