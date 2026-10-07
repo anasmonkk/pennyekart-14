@@ -1,0 +1,1 @@
+ALTER TABLE public.utility_service_requests ADD COLUMN IF NOT EXISTS utility_push_sent_at timestamptz;

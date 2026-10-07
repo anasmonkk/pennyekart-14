@@ -4,7 +4,7 @@ import NotificationBell from "@/components/NotificationBell";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,6 +32,7 @@ const emptyService = {
 const UtilityPartnerDashboard = () => {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [categories, setCategories] = useState<UtilityCategory[]>([]);
   const [services, setServices] = useState<UtilityService[]>([]);
@@ -50,6 +51,14 @@ const UtilityPartnerDashboard = () => {
   const [editLocalBodies, setEditLocalBodies] = useState<{ id: string; name: string; body_type: string; ward_count: number; district_id: string }[]>([]);
   const [districtId, setDistrictId] = useState("");
   const [activeTab, setActiveTab] = useState("home");
+  const [focusedRequestId, setFocusedRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    const requestId = searchParams.get("request");
+    if (tab === "requests") setActiveTab("requests");
+    if (requestId) setFocusedRequestId(requestId);
+  }, [searchParams]);
 
   useEffect(() => {
     supabase.from("locations_districts").select("id, name").eq("is_active", true).order("sort_order")
@@ -125,6 +134,18 @@ const UtilityPartnerDashboard = () => {
   };
 
   useEffect(() => { fetchAll(); }, [profile?.user_id]);
+
+  useEffect(() => {
+    if (!focusedRequestId || !requests.some((request) => request.id === focusedRequestId)) return;
+    const scrollTimer = window.setTimeout(() => {
+      document.getElementById(`utility-request-${focusedRequestId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 250);
+    const focusTimer = window.setTimeout(() => setFocusedRequestId(null), 5000);
+    return () => {
+      window.clearTimeout(scrollTimer);
+      window.clearTimeout(focusTimer);
+    };
+  }, [focusedRequestId, requests]);
 
   // Poll + realtime so new requests pop up immediately
   useEffect(() => {
@@ -217,7 +238,11 @@ const UtilityPartnerDashboard = () => {
   };
 
   const renderRequest = (r: UtilityRequest) => (
-    <Card key={r.id}>
+    <Card
+      key={r.id}
+      id={`utility-request-${r.id}`}
+      className={r.id === focusedRequestId ? "ring-2 ring-primary" : undefined}
+    >
       <CardContent className="space-y-2 p-4">
         <div className="flex items-start justify-between gap-2">
           <div>

@@ -2486,6 +2486,7 @@ export type Database = {
           total_amount: number | null
           unit_price: number | null
           updated_at: string
+          utility_push_sent_at: string | null
           variant_id: string | null
           variant_label: string | null
         }
@@ -2509,6 +2510,7 @@ export type Database = {
           total_amount?: number | null
           unit_price?: number | null
           updated_at?: string
+          utility_push_sent_at?: string | null
           variant_id?: string | null
           variant_label?: string | null
         }
@@ -2532,6 +2534,7 @@ export type Database = {
           total_amount?: number | null
           unit_price?: number | null
           updated_at?: string
+          utility_push_sent_at?: string | null
           variant_id?: string | null
           variant_label?: string | null
         }
