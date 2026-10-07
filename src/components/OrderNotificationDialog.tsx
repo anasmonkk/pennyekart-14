@@ -18,24 +18,40 @@ interface Props {
   footer?: ReactNode;
 }
 
-export default function OrderNotificationDialog({ open, onOpenChange, title, pending, active = [], dismissedIds, showTabs = true, renderContact, renderActions, footer }: Props) {
-  const [tab, setTab] = useState("new");
-  const selectedTab = tab === "new" && !pending.length && active.length ? "active" : tab;
-  const orders = !showTabs || selectedTab === "new" ? pending : active;
+export function NotificationDialogFrame({ open, onOpenChange, title, description, tabs, footer, children }: {
+  open: boolean; onOpenChange: (open: boolean) => void; title: string;
+  description: ReactNode; tabs?: ReactNode; footer?: ReactNode; children: ReactNode;
+}) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="delivery-blue w-[calc(100%-1.5rem)] max-w-md max-h-[calc(100dvh-2rem)] flex flex-col gap-0 overflow-hidden rounded-lg p-0 [&>button]:text-primary-foreground [&>button]:h-8 [&>button]:w-8 [&>button]:flex [&>button]:items-center [&>button]:justify-center">
         <DialogHeader className="delivery-gradient shrink-0 px-4 py-5 pr-14 text-left text-primary-foreground">
           <DialogTitle className="flex items-center gap-2 font-body text-xl tracking-normal"><Bell className="h-5 w-5 shrink-0" />{title}</DialogTitle>
-          <DialogDescription className="text-primary-foreground/90">{pending.length} new{showTabs ? ` · ${active.length} in progress` : " · awaiting action"}</DialogDescription>
+          <DialogDescription className="text-primary-foreground/90">{description}</DialogDescription>
         </DialogHeader>
-        {showTabs && <Tabs value={selectedTab} onValueChange={setTab} className="shrink-0 border-b px-4 py-3">
+        {tabs}
+        <div className="min-h-0 overflow-y-auto overscroll-contain p-4 space-y-3 pb-[max(1rem,env(safe-area-inset-bottom))]">{children}</div>
+        {footer && <div className="shrink-0 border-t bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">{footer}</div>}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function OrderNotificationDialog({ open, onOpenChange, title, pending, active = [], dismissedIds, showTabs = true, renderContact, renderActions, footer }: Props) {
+  const [tab, setTab] = useState("new");
+  const selectedTab = tab === "new" && !pending.length && active.length ? "active" : tab;
+  const orders = !showTabs || selectedTab === "new" ? pending : active;
+  return (
+    <NotificationDialogFrame open={open} onOpenChange={onOpenChange} title={title}
+      description={<>{pending.length} new{showTabs ? ` · ${active.length} in progress` : " · awaiting action"}</>}
+      footer={footer}
+      tabs={showTabs && <Tabs value={selectedTab} onValueChange={setTab} className="shrink-0 border-b px-4 py-3">
           <TabsList className="grid w-full grid-cols-2 h-11">
             <TabsTrigger value="new" className="h-9 gap-2"><Package className="h-4 w-4" />New ({pending.length})</TabsTrigger>
             <TabsTrigger value="active" className="h-9 gap-2"><Clock className="h-4 w-4" />In progress ({active.length})</TabsTrigger>
           </TabsList>
         </Tabs>}
-        <div className="min-h-0 overflow-y-auto overscroll-contain p-4 space-y-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    >
           {!orders.length && <p className="py-8 text-center text-sm text-muted-foreground">No {selectedTab === "new" ? "new orders" : "orders in progress"}</p>}
           {orders.map((order) => {
             const items = Array.isArray(order.items) ? order.items : [];
@@ -58,9 +74,6 @@ export default function OrderNotificationDialog({ open, onOpenChange, title, pen
               <div className="border-t pt-3">{renderActions(order, isNew)}</div>
             </article>;
           })}
-        </div>
-        {footer && <div className="shrink-0 border-t bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">{footer}</div>}
-      </DialogContent>
-    </Dialog>
+    </NotificationDialogFrame>
   );
 }

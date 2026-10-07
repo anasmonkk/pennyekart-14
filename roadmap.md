@@ -1,5 +1,8 @@
 # Roadmap
 
+## Utility seller notification popup
+- [x] Match the utility request popup to the normal seller blue notification layout; sample layout verified at 360px and 390px, with Accept and Later controls tested. Live signed-in booking updates remain unverified (external Supabase session unavailable).
+
 ## Consistent order popups
 - [ ] Match admin and selling-partner order popups to the delivery blue layout, preserving role-specific actions; verify layout and controls.
 
