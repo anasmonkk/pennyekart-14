@@ -1,4 +1,6 @@
 import AccountSettingsSection from "@/components/AccountSettingsSection";
+import NotificationToggle from "@/components/NotificationToggle";
+import NotificationBell from "@/components/NotificationBell";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -217,6 +219,7 @@ const UtilityPartnerDashboard = () => {
             <h1 className="text-base font-bold text-primary-foreground sm:text-lg">Utility Partner Dashboard</h1>
           </div>
           <div className="flex items-center gap-2">
+            <div className="text-primary-foreground [&_button]:text-primary-foreground"><NotificationBell /></div>
             <PartnerAvatar />
             <div className="flex items-center gap-2 rounded-full bg-primary-foreground/15 px-3 py-1">
               <Switch checked={available} onCheckedChange={toggleAvailability} />
@@ -244,7 +247,17 @@ const UtilityPartnerDashboard = () => {
           <TabsList>
             <TabsTrigger value="services">My Services</TabsTrigger>
             <TabsTrigger value="requests">Requests <Badge variant="outline" className="ml-2">{requests.length}</Badge></TabsTrigger>
+            <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="profile" className="mt-4 space-y-3">
+            <div className="rounded-lg border bg-card p-4 space-y-3">
+              <p className="text-sm font-semibold">Notifications</p>
+              <p className="text-xs text-muted-foreground">Get alerts on your phone when a customer books your service.</p>
+              <NotificationToggle />
+            </div>
+            <AccountSettingsSection className="space-y-3" />
+          </TabsContent>
 
           <TabsContent value="services" className="mt-4 space-y-3">
             <div className="flex justify-end">
@@ -415,7 +428,6 @@ const UtilityPartnerDashboard = () => {
           </span>
         </button>
       )}
-      <AccountSettingsSection />
     </div>
 
   );
