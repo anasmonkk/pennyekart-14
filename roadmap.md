@@ -1,5 +1,8 @@
 # Roadmap
 
+## Utility seller notification popup
+- [ ] Match the utility request popup to the normal seller blue notification layout and verify mobile sizing; preserve request actions.
+
 ## Consistent order popups
 - [ ] Match admin and selling-partner order popups to the delivery blue layout, preserving role-specific actions; verify layout and controls.
 
