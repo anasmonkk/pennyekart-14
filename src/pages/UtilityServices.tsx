@@ -306,7 +306,7 @@ const UtilityServices = () => {
     }
 
     setSubmitting(true);
-    const { error } = await supabase.from("utility_service_requests").insert({
+    const { data: request, error } = await supabase.from("utility_service_requests").insert({
       service_id: booking.id,
       customer_user_id: user.id,
       contact_name: contactName,
@@ -320,11 +320,16 @@ const UtilityServices = () => {
       quantity: qty,
       unit_price: unitPrice || null,
       total_amount: orderTotal || null,
-    });
+    }).select("id").single();
     setSubmitting(false);
     if (error) {
       toast({ title: "Could not send request", description: error.message, variant: "destructive" });
     } else {
+      void supabase.functions.invoke("send-utility-request-push", { body: { request_id: request.id } })
+        .then(({ error: pushError }) => {
+          if (pushError) console.error("Utility request push failed:", pushError.message);
+        })
+        .catch((pushError) => console.error("Utility request push failed:", pushError));
       toast({
         title: variants.length ? "Order placed!" : "Request sent!",
         description: "The supplier will contact you shortly.",
