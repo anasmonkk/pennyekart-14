@@ -1,4 +1,4 @@
-import { Check, MapPin, Phone, Wrench } from "lucide-react";
+import { Check, MapPin, Phone, Wrench, XCircle } from "lucide-react";
 import { NotificationDialogFrame } from "@/components/OrderNotificationDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +10,11 @@ interface Props {
   requests: UtilityRequest[];
   serviceName: (id: string) => string;
   onAccept: (id: string) => void;
+  onCancel?: (id: string) => void;
+  onRemindLater?: () => void;
 }
 
-export default function UtilityRequestNotificationDialog({ open, onOpenChange, requests, serviceName, onAccept }: Props) {
+export default function UtilityRequestNotificationDialog({ open, onOpenChange, requests, serviceName, onAccept, onCancel, onRemindLater }: Props) {
   const pending = requests.filter((request) => request.status === "pending");
   return (
     <NotificationDialogFrame open={open} onOpenChange={onOpenChange} title="Service requests" description={`${pending.length} new · awaiting action`}>
@@ -39,7 +41,12 @@ export default function UtilityRequestNotificationDialog({ open, onOpenChange, r
           )}
           <div className="grid grid-cols-1 gap-2 border-t pt-3">
             <Button className="delivery-gradient h-11" onClick={() => onAccept(request.id)}><Check className="mr-2 h-4 w-4" />Accept request</Button>
-            <Button variant="ghost" className="h-10" onClick={() => onOpenChange(false)}>Later</Button>
+            {onCancel && (
+              <Button variant="outline" className="h-11 text-destructive border-destructive/40 hover:bg-destructive/10" onClick={() => onCancel(request.id)}>
+                <XCircle className="mr-2 h-4 w-4" />Cancel request
+              </Button>
+            )}
+            <Button variant="ghost" className="h-10" onClick={() => (onRemindLater ? onRemindLater() : onOpenChange(false))}>Remind me later</Button>
           </div>
         </article>
       ))}

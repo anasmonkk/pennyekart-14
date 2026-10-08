@@ -159,11 +159,18 @@ const UtilityPartnerDashboard = () => {
     return () => { clearInterval(interval); supabase.removeChannel(channel); };
   }, [profile?.user_id, services.length]);
 
-  // Popup when a new pending request arrives
+  // Popup when a new pending request arrives, and on every page load/refresh
+  // while pending requests exist — unless the seller tapped "Remind me later" today.
+  const dismissedToday = () => localStorage.getItem("utility_popup_dismissed_date") === new Date().toDateString();
+  const remindLater = () => {
+    localStorage.setItem("utility_popup_dismissed_date", new Date().toDateString());
+    setAlertOpen(false);
+  };
   useEffect(() => {
     const count = requests.filter((r) => r.status === "pending").length;
-    if (count > prevPendingRef.current && prevPendingRef.current !== -1) setAlertOpen(true);
-    if (prevPendingRef.current === -1 && count > 0) setAlertOpen(true);
+    if (count === 0) { prevPendingRef.current = count; return; }
+    if (dismissedToday()) { prevPendingRef.current = count; return; }
+    if (prevPendingRef.current === -1 || count > prevPendingRef.current) setAlertOpen(true);
     prevPendingRef.current = count;
   }, [requests]);
 
@@ -205,6 +212,11 @@ const UtilityPartnerDashboard = () => {
     const { error } = await supabase.from("utility_service_requests").update({ status }).eq("id", id);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { toast({ title: "Request updated" }); fetchAll(); }
+  };
+
+  const cancelRequest = async (id: string) => {
+    if (!window.confirm("Cancel this service request? The customer will see it as cancelled.")) return;
+    await setRequestStatus(id, "cancelled");
   };
 
   const openEdit = (s: UtilityService) => {
@@ -274,9 +286,14 @@ const UtilityPartnerDashboard = () => {
         {r.notes && <p className="text-xs text-muted-foreground">{r.notes}</p>}
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {r.status === "pending" && (
-            <Button size="sm" onClick={() => setRequestStatus(r.id, "assigned")}>
-              <Check className="mr-1.5 h-3.5 w-3.5" /> Accept
-            </Button>
+            <>
+              <Button size="sm" onClick={() => setRequestStatus(r.id, "assigned")}>
+                <Check className="mr-1.5 h-3.5 w-3.5" /> Accept
+              </Button>
+              <Button size="sm" variant="outline" className="text-destructive border-destructive/40" onClick={() => cancelRequest(r.id)}>
+                Cancel
+              </Button>
+            </>
           )}
           {["assigned", "in_progress"].includes(r.status) && (
             <Button size="sm" onClick={() => setRequestStatus(r.id, "completed")}>
@@ -533,6 +550,7 @@ const UtilityPartnerDashboard = () => {
       <UtilityRequestNotificationDialog
         open={alertOpen} onOpenChange={setAlertOpen} requests={requests}
         serviceName={serviceName} onAccept={(id) => setRequestStatus(id, "assigned")}
+        onCancel={cancelRequest} onRemindLater={remindLater}
       />
 
       {/* Floating bell */}
