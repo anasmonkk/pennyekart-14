@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Store, Phone, Mail, Package, Eye, MapPin, Wallet, User, Calendar, CheckCircle, Clock, Image as ImageIcon, Video } from "lucide-react";
+import { Search, Store, Phone, Mail, Package, Eye, MapPin, Wallet, User, Calendar, CheckCircle, Clock, Image as ImageIcon, Video, ShoppingBag } from "lucide-react";
+import OrderDetailDialog from "@/components/OrderDetailDialog";
 
 interface SellingPartner {
   id: string;
@@ -84,6 +85,11 @@ const SellingPartnersPage = () => {
   const [detailPartner, setDetailPartner] = useState<SellingPartner | null>(null);
   const [detailProduct, setDetailProduct] = useState<SellerProduct | null>(null);
   const [productImageIdx, setProductImageIdx] = useState(0);
+  const [ordersPartner, setOrdersPartner] = useState<SellingPartner | null>(null);
+  const [partnerOrders, setPartnerOrders] = useState<any[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [orderCustomers, setOrderCustomers] = useState<Record<string, { full_name: string | null; mobile_number: string | null }>>({});
+  const [detailOrder, setDetailOrder] = useState<any | null>(null);
   const { toast } = useToast();
 
   const fetchPartners = async () => {
@@ -177,6 +183,23 @@ const SellingPartnersPage = () => {
     const { data } = await supabase.from("seller_products").select("*").eq("seller_id", partner.user_id);
     setPartnerProducts((data ?? []) as SellerProduct[]);
     setProductsLoading(false);
+  };
+
+  const openOrders = async (partner: SellingPartner) => {
+    setOrdersPartner(partner);
+    setOrdersLoading(true);
+    setPartnerOrders([]);
+    const { data } = await supabase.from("orders").select("*").eq("seller_id", partner.user_id).order("created_at", { ascending: false });
+    const list = (data ?? []) as any[];
+    setPartnerOrders(list);
+    const ids = Array.from(new Set(list.map(o => o.user_id).filter(Boolean) as string[]));
+    if (ids.length) {
+      const { data: profs } = await supabase.from("profiles").select("user_id, full_name, mobile_number").in("user_id", ids);
+      const map: Record<string, { full_name: string | null; mobile_number: string | null }> = {};
+      (profs ?? []).forEach((p: any) => { map[p.user_id] = p; });
+      setOrderCustomers(map);
+    }
+    setOrdersLoading(false);
   };
 
   const openGodownAssignment = async (partner: SellingPartner) => {
@@ -306,6 +329,7 @@ const SellingPartnersPage = () => {
                 <div className="flex gap-1">
                   <Button variant="ghost" size="sm" onClick={() => setDetailPartner(p)} title="View Details"><User className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="sm" onClick={() => viewProducts(p)} title="Products"><Eye className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => openOrders(p)} title="Orders"><ShoppingBag className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="sm" onClick={() => openGodownAssignment(p)} title="Assign Godowns"><MapPin className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="sm" onClick={() => openWallet(p)} title="Wallet"><Wallet className="h-4 w-4" /></Button>
                 </div>
@@ -605,6 +629,62 @@ const SellingPartnersPage = () => {
           )}
         </DialogContent>
       </Dialog>
+      {/* Seller Orders Dialog */}
+      <Dialog open={!!ordersPartner} onOpenChange={() => setOrdersPartner(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><ShoppingBag className="h-5 w-5 text-primary" /> Orders — {ordersPartner?.full_name ?? "Partner"}</DialogTitle></DialogHeader>
+          {ordersLoading ? (
+            <p className="text-center py-4 text-muted-foreground">Loading...</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="rounded-lg bg-muted p-3 text-center"><p className="text-xs text-muted-foreground">Total Orders</p><p className="text-xl font-bold">{partnerOrders.length}</p></div>
+                <div className="rounded-lg bg-muted p-3 text-center"><p className="text-xs text-muted-foreground">Delivered</p><p className="text-xl font-bold">{partnerOrders.filter(o => o.status === "delivered").length}</p></div>
+                <div className="rounded-lg bg-muted p-3 text-center"><p className="text-xs text-muted-foreground">Open</p><p className="text-xl font-bold">{partnerOrders.filter(o => !["delivered", "cancelled", "return_requested", "return_confirmed"].includes(o.status)).length}</p></div>
+                <div className="rounded-lg bg-muted p-3 text-center"><p className="text-xs text-muted-foreground">Delivered Value</p><p className="text-xl font-bold">₹{partnerOrders.filter(o => o.status === "delivered").reduce((s, o) => s + Number(o.total || 0), 0).toFixed(2)}</p></div>
+              </div>
+              {partnerOrders.length === 0 ? (
+                <p className="text-center py-4 text-muted-foreground">No orders yet</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {partnerOrders.map((o) => {
+                      const cust = o.user_id ? orderCustomers[o.user_id] : undefined;
+                      return (
+                        <TableRow key={o.id} className="cursor-pointer" onClick={() => setDetailOrder(o)}>
+                          <TableCell className="font-mono text-xs">{o.id.slice(0, 8)}…</TableCell>
+                          <TableCell className="text-xs">
+                            <div className="font-medium">{cust?.full_name ?? "—"}</div>
+                            <div className="text-muted-foreground">{cust?.mobile_number ?? ""}</div>
+                          </TableCell>
+                          <TableCell className="text-xs">{Array.isArray(o.items) ? o.items.length : 0}</TableCell>
+                          <TableCell>₹{o.total}</TableCell>
+                          <TableCell><Badge variant={o.status === "delivered" ? "default" : o.status === "cancelled" ? "destructive" : "secondary"} className="capitalize">{o.status.replace(/_/g, " ")}</Badge></TableCell>
+                          <TableCell className="text-xs">{new Date(o.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell><Eye className="h-4 w-4 text-muted-foreground" /></TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <OrderDetailDialog order={detailOrder} open={!!detailOrder} onOpenChange={(v) => { if (!v) setDetailOrder(null); }} />
     </AdminLayout>
   );
 };
