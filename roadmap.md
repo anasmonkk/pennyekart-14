@@ -1,5 +1,8 @@
 # Roadmap
 
+## Seller order item visibility
+- [ ] Highlight individual items and show full item/service names in normal and utility seller order lists, details, and alerts; preserve order actions.
+
 ## Delivery Stock feature cards
 - [x] Convert Stock sections to feature cards matching Orders; automated section/back-navigation, search and control checks passed; build OK. Live signed-in stock operations remain unverified (external Supabase).
 
