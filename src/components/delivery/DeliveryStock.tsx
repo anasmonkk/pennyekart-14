@@ -3,12 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Package, ArrowRightLeft, History } from "lucide-react";
+import { Package, ArrowRightLeft, History, ArrowLeft } from "lucide-react";
 
 interface StockItem {
   id: string;
@@ -52,6 +52,7 @@ const DeliveryStock = ({ userId, assignedWards }: Props) => {
   const [productFilter, setProductFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [section, setSection] = useState("menu");
 
   // Transfer form
   const [transferProduct, setTransferProduct] = useState("");
@@ -149,6 +150,11 @@ const DeliveryStock = ({ userId, assignedWards }: Props) => {
   });
 
   const uniqueProducts = [...new Map(stock.map(s => [s.product_id, { id: s.product_id, name: s.product_name }])).values()];
+  const sectionCards = [
+    { value: "stock", label: "Current Stock", icon: Package, sub: `${uniqueProducts.length} products` },
+    { value: "transfer", label: "Transfer", icon: ArrowRightLeft, sub: `${godowns.length} godowns` },
+    { value: "history", label: "Transfer History", icon: History, sub: `${transfers.length} transfers` },
+  ];
 
   const handleTransfer = async () => {
     if (!transferProduct || !transferFrom || !transferTo || !transferQty || transferFrom === transferTo) {
@@ -196,12 +202,32 @@ const DeliveryStock = ({ userId, assignedWards }: Props) => {
   }
 
   return (
-    <Tabs defaultValue="stock">
-      <TabsList>
-        <TabsTrigger value="stock"><Package className="h-4 w-4 mr-1" /> Current Stock</TabsTrigger>
-        <TabsTrigger value="transfer"><ArrowRightLeft className="h-4 w-4 mr-1" /> Transfer</TabsTrigger>
-        <TabsTrigger value="history"><History className="h-4 w-4 mr-1" /> Transfer History</TabsTrigger>
-      </TabsList>
+    <Tabs value={section} onValueChange={setSection}>
+      {section === "menu" ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" aria-label="Stock features">
+          {sectionCards.map((feature) => (
+            <Button
+              key={feature.value}
+              variant="outline"
+              onClick={() => setSection(feature.value)}
+              className="h-auto min-h-36 min-w-0 flex-col gap-2 whitespace-normal rounded-lg bg-card p-5 text-center shadow-sm hover:bg-muted/40"
+            >
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                <feature.icon className="h-6 w-6 text-primary" />
+              </span>
+              <span className="text-sm font-semibold">{feature.label}</span>
+              <span className="text-xs font-normal text-muted-foreground">{feature.sub}</span>
+            </Button>
+          ))}
+        </div>
+      ) : (
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setSection("menu")} className="-ml-2 gap-1.5">
+            <ArrowLeft className="h-4 w-4" /> Back to features
+          </Button>
+          <h2 className="text-base font-semibold">{sectionCards.find((feature) => feature.value === section)?.label}</h2>
+        </div>
+      )}
 
       <TabsContent value="stock">
         <Card>
@@ -246,7 +272,7 @@ const DeliveryStock = ({ userId, assignedWards }: Props) => {
           <CardHeader><CardTitle>Create Stock Transfer</CardTitle></CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 max-w-lg">
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="text-sm font-medium">Product</label>
                 <Select value={transferProduct} onValueChange={setTransferProduct}>
                   <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
