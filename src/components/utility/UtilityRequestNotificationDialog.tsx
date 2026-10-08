@@ -1,4 +1,4 @@
-import { Check, MapPin, Phone, Wrench } from "lucide-react";
+import { Check, MapPin, Phone, Wrench, XCircle } from "lucide-react";
 import { NotificationDialogFrame } from "@/components/OrderNotificationDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +10,11 @@ interface Props {
   requests: UtilityRequest[];
   serviceName: (id: string) => string;
   onAccept: (id: string) => void;
+  onCancel?: (id: string) => void;
+  onRemindLater?: () => void;
 }
 
-export default function UtilityRequestNotificationDialog({ open, onOpenChange, requests, serviceName, onAccept }: Props) {
+export default function UtilityRequestNotificationDialog({ open, onOpenChange, requests, serviceName, onAccept, onCancel, onRemindLater }: Props) {
   const pending = requests.filter((request) => request.status === "pending");
   return (
     <NotificationDialogFrame open={open} onOpenChange={onOpenChange} title="Service requests" description={`${pending.length} new · awaiting action`}>
