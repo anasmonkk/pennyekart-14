@@ -1,4 +1,5 @@
-import { Check, MapPin, Phone, Wrench, XCircle } from "lucide-react";
+import { Check, MapPin, Phone, XCircle } from "lucide-react";
+import OrderItemHighlight from "@/components/selling-partner/OrderItemHighlight";
 import { NotificationDialogFrame } from "@/components/OrderNotificationDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,8 +34,7 @@ export default function UtilityRequestNotificationDialog({ open, onOpenChange, r
             <p className="break-words font-semibold">{request.contact_name}</p>
             <p className="flex items-center gap-1 text-sm text-muted-foreground"><Phone className="h-4 w-4 shrink-0" /><span className="min-w-0 break-words">{request.contact_phone}</span></p>
           </div>
-          <p className="flex items-start gap-2 text-sm font-medium"><Wrench className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span className="min-w-0 break-words">{serviceName(request.service_id)}</span></p>
-          {request.variant_label && <p className="break-words text-sm text-primary">{request.variant_label} × {request.quantity ?? 1}</p>}
+          <OrderItemHighlight name={serviceName(request.service_id)} variant={request.variant_label} quantity={request.quantity ?? 1} />
           {request.address && <p className="flex items-start gap-2 text-sm text-muted-foreground"><MapPin className="mt-0.5 h-4 w-4 shrink-0" /><span className="min-w-0 break-words">{request.address}</span></p>}
           {request.latitude != null && request.longitude != null && (
             <a className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-primary underline" href={`https://www.google.com/maps/search/?api=1&query=${request.latitude},${request.longitude}`} target="_blank" rel="noreferrer"><MapPin className="h-4 w-4 shrink-0" />Open location on map</a>

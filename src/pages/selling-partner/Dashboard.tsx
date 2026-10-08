@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Package, Plus, LogOut, Store, ShoppingCart, Wallet, Star, PackagePlus, Pencil, BarChart3, TrendingUp, MapPin, ArrowDownLeft, ArrowLeft, Clock, Settings, Tag, Truck, Eye, CheckCircle, XCircle, CircleDot, PauseCircle, User } from "lucide-react";
 import OrderDetailDialog from "@/components/OrderDetailDialog";
+import { HighlightedOrderItems } from "@/components/selling-partner/OrderItemHighlight";
 import PennyPrimeCoupons from "@/components/selling-partner/PennyPrimeCoupons";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/admin/ImageUpload";
@@ -815,8 +816,8 @@ const SellingPartnerDashboard = () => {
                                 return (
                                   <TableRow key={o.id} className="bg-destructive/5">
                                     <TableCell className="font-mono text-xs">{o.id.slice(0, 8)}</TableCell>
-                                    <TableCell className="text-xs max-w-[150px]">
-                                      {myItems.length > 0 ? myItems.map((i: any) => `${i.name} ×${i.quantity || 1}`).join(", ") : (Array.isArray(o.items) ? o.items.map((i: any) => `${i.name} ×${i.quantity || 1}`).join(", ") : "-")}
+                                    <TableCell className="min-w-[220px] max-w-sm whitespace-normal align-top">
+                                      <HighlightedOrderItems items={myItems.length > 0 ? myItems : Array.isArray(o.items) ? o.items : []} />
                                     </TableCell>
                                     <TableCell>₹{o.total}</TableCell>
                                     <TableCell className="text-sm text-muted-foreground">{new Date(o.created_at).toLocaleDateString()}</TableCell>
@@ -888,8 +889,8 @@ const SellingPartnerDashboard = () => {
                             return (
                               <TableRow key={o.id}>
                                 <TableCell className="font-mono text-xs">{o.id.slice(0, 8)}</TableCell>
-                                <TableCell className="text-xs max-w-[150px]">
-                                  {myItems.length > 0 ? myItems.map((i: any) => `${i.name} ×${i.quantity || 1}`).join(", ") : (Array.isArray(o.items) ? o.items.map((i: any) => `${i.name} ×${i.quantity || 1}`).join(", ") : "-")}
+                                <TableCell className="min-w-[220px] max-w-sm whitespace-normal align-top">
+                                  <HighlightedOrderItems items={myItems.length > 0 ? myItems : Array.isArray(o.items) ? o.items : []} />
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex flex-col gap-1">
@@ -1256,6 +1257,7 @@ const SellingPartnerDashboard = () => {
         />
       )}
       <OrderDetailDialog
+        highlightItems
         order={detailOrder}
         open={!!detailOrder}
         onOpenChange={(v) => { if (!v) setDetailOrder(null); }}
