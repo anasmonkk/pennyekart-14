@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Package, MapPin, Calendar, Navigation, XCircle, RotateCcw, Receipt, LocateFixed, Loader2 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -139,6 +140,18 @@ const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultSta
 
   const items: OrderItem[] = Array.isArray(order.items) ? order.items : [];
 
+  const SectionCard = ({ icon, title, children, accent = false }: { icon: React.ReactNode; title: string; children: React.ReactNode; accent?: boolean }) => (
+    <Card className={accent ? "border-primary/30 bg-primary/5" : undefined}>
+      <CardContent className="p-3 space-y-2">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+          {icon}
+          {title}
+        </h4>
+        {children}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
@@ -149,80 +162,81 @@ const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultSta
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Status & Date */}
-          <div className="flex items-center justify-between">
-            <Badge variant={order.status === "delivered" ? "default" : "secondary"}>
-              {statusLabel(order.status)}
-            </Badge>
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
+        <div className="space-y-3">
+          {/* Order summary card */}
+          <SectionCard
+            accent
+            icon={<Calendar className="h-3.5 w-3.5" />}
+            title="Order summary"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <Badge variant={order.status === "delivered" ? "default" : "secondary"}>
+                {statusLabel(order.status)}
+              </Badge>
+              <span className="text-base font-semibold">₹{Number(order.total).toFixed(2)}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
               {new Date(order.created_at).toLocaleString()}
-            </span>
-          </div>
+            </p>
+          </SectionCard>
 
-          {/* Address */}
-          {order.shipping_address && (
-            <div className="flex items-start gap-2 text-sm">
-              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-              <span className="text-muted-foreground">{order.shipping_address}</span>
-            </div>
-          )}
+          {/* Delivery location card */}
+          <SectionCard icon={<MapPin className="h-3.5 w-3.5" />} title="Delivery location">
+            {order.shipping_address && (
+              <p className="text-sm text-muted-foreground">{order.shipping_address}</p>
+            )}
 
-          {/* Google Maps navigation and delivery-staff pin capture */}
-          {(customerLocation || deliveryStaffUserId) && (
-            <div className="space-y-2">
-              {customerLocation ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full gap-2"
-                  onClick={() => window.open(
-                    `https://www.google.com/maps/dir/?api=1&destination=${customerLocation.lat},${customerLocation.lng}`,
-                    "_blank",
-                    "noopener,noreferrer"
-                  )}
-                >
-                  <Navigation className="h-4 w-4 text-primary" />
-                  Navigate to Customer (Google Maps)
-                </Button>
-              ) : deliveryStaffUserId && !loadingLocation ? (
-                <>
-                  <p className="text-sm text-muted-foreground">No saved map pin for this customer.</p>
-                  {!capturedLocation ? (
-                    <Button variant="outline" size="sm" className="w-full gap-2" onClick={captureDeliveryLocation} disabled={capturingLocation}>
-                      {capturingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4 text-primary" />}
-                      {capturingLocation ? "Getting phone location…" : "Capture delivery location"}
-                    </Button>
-                  ) : (
-                    <div className="space-y-2 rounded-md border p-3">
-                      <p className="text-xs text-muted-foreground">Captured pin: {capturedLocation.lat.toFixed(5)}, {capturedLocation.lng.toFixed(5)}</p>
-                      <Button size="sm" className="w-full" onClick={saveCapturedLocation} disabled={savingLocation || !order.user_id}>
-                        {savingLocation && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {savingLocation ? "Saving…" : "Save to customer address book"}
+            {(customerLocation || deliveryStaffUserId) && (
+              <div className="space-y-2 pt-1">
+                {customerLocation ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2"
+                    onClick={() => window.open(
+                      `https://www.google.com/maps/dir/?api=1&destination=${customerLocation.lat},${customerLocation.lng}`,
+                      "_blank",
+                      "noopener,noreferrer"
+                    )}
+                  >
+                    <Navigation className="h-4 w-4 text-primary" />
+                    Navigate to Customer (Google Maps)
+                  </Button>
+                ) : deliveryStaffUserId && !loadingLocation ? (
+                  <>
+                    <p className="text-xs text-muted-foreground">No saved map pin for this customer.</p>
+                    {!capturedLocation ? (
+                      <Button variant="outline" size="sm" className="w-full gap-2" onClick={captureDeliveryLocation} disabled={capturingLocation}>
+                        {capturingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4 text-primary" />}
+                        {capturingLocation ? "Getting phone location…" : "Capture delivery location"}
                       </Button>
-                      {!order.user_id && <p className="text-xs text-destructive">This order has no linked customer account, so the pin cannot be saved.</p>}
-                    </div>
-                  )}
-                </>
-              ) : loadingLocation ? (
-                <p className="text-sm text-muted-foreground">Checking saved customer locations…</p>
-              ) : null}
-              {locationError && <p role="alert" className="text-xs text-destructive">{locationError}</p>}
-            </div>
-          )}
+                    ) : (
+                      <div className="space-y-2 rounded-md border p-3">
+                        <p className="text-xs text-muted-foreground">Captured pin: {capturedLocation.lat.toFixed(5)}, {capturedLocation.lng.toFixed(5)}</p>
+                        <Button size="sm" className="w-full" onClick={saveCapturedLocation} disabled={savingLocation || !order.user_id}>
+                          {savingLocation && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          {savingLocation ? "Saving…" : "Save to customer address book"}
+                        </Button>
+                        {!order.user_id && <p className="text-xs text-destructive">This order has no linked customer account, so the pin cannot be saved.</p>}
+                      </div>
+                    )}
+                  </>
+                ) : loadingLocation ? (
+                  <p className="text-xs text-muted-foreground">Checking saved customer locations…</p>
+                ) : null}
+                {locationError && <p role="alert" className="text-xs text-destructive">{locationError}</p>}
+              </div>
+            )}
+          </SectionCard>
 
-          <Separator />
-
-          {/* Items */}
-          <div>
-            <h4 className="text-sm font-semibold mb-2">Items ({items.length})</h4>
-            <div className="space-y-2">
-              {items.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No item details available</p>
-              ) : (
-                items.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3 rounded-lg border p-2">
+          {/* Items card */}
+          <SectionCard icon={<Package className="h-3.5 w-3.5" />} title={`Items (${items.length})`}>
+            {items.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No item details available</p>
+            ) : (
+              <div className="space-y-2">
+                {items.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-3 rounded-lg border bg-background p-2">
                     {(item.image_url || item.image) && (
                       <img
                         src={item.image_url || item.image}
@@ -244,20 +258,14 @@ const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultSta
                       ₹{((item.price ?? 0) * (item.quantity || 1)).toFixed(0)}
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
+                ))}
+              </div>
+            )}
+          </SectionCard>
 
-          <Separator />
-
-          {/* Bill Details */}
-          <div>
-            <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-              <Receipt className="h-4 w-4 text-primary" />
-              Bill Details
-            </h4>
-            <div className="rounded-lg border p-3 space-y-1.5 text-sm">
+          {/* Bill card */}
+          <SectionCard accent icon={<Receipt className="h-3.5 w-3.5" />} title="Bill details">
+            <div className="space-y-1.5 text-sm">
               {items.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between gap-2">
                   <span className="text-muted-foreground truncate">
@@ -280,61 +288,58 @@ const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultSta
                 <span className="text-base">₹{Number(order.total).toFixed(2)}</span>
               </div>
             </div>
-          </div>
+          </SectionCard>
 
           {/* Cancel / Return actions (customer view) */}
           {(onCancel || onRequestReturn) && (
-            <>
-              <Separator />
-              <div className="flex gap-2">
-                {onCancel && CANCELLABLE.includes(order.status) && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button size="sm" variant="destructive" className="flex-1">
-                        <XCircle className="h-4 w-4 mr-1" /> Cancel Order
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Cancel Order?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to cancel this order? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>No, keep it</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => { onCancel(order.id); onOpenChange(false); }}>
-                          Yes, cancel
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-                {onRequestReturn && order.status === "delivered" && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button size="sm" variant="outline" className="flex-1">
-                        <RotateCcw className="h-4 w-4 mr-1" /> Request Return
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Request Return?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          A delivery/selling partner will need to confirm the return before stock is restored. Are you sure?
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>No, keep it</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => { onRequestReturn(order.id); onOpenChange(false); }}>
-                          Yes, request return
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-              </div>
-            </>
+            <div className="flex gap-2">
+              {onCancel && CANCELLABLE.includes(order.status) && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="destructive" className="flex-1">
+                      <XCircle className="h-4 w-4 mr-1" /> Cancel Order
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Cancel Order?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to cancel this order? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>No, keep it</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => { onCancel(order.id); onOpenChange(false); }}>
+                        Yes, cancel
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              {onRequestReturn && order.status === "delivered" && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="flex-1">
+                      <RotateCcw className="h-4 w-4 mr-1" /> Request Return
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Request Return?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        A delivery/selling partner will need to confirm the return before stock is restored. Are you sure?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>No, keep it</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => { onRequestReturn(order.id); onOpenChange(false); }}>
+                        Yes, request return
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           )}
         </div>
       </DialogContent>
