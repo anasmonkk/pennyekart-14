@@ -1,5 +1,9 @@
 # Roadmap
 
+## Utility seller phone layout and reminder pause
+- [ ] Match normal seller layout sizing and organize utility header, services, requests, and forms for phones.
+- [ ] Add a top reminder control that pauses in-app reminders for 12 hours, persists on reload, and resumes automatically; test the timing rule.
+
 ## Seller unfinished-order reminders
 - [x] Include all unfinished order stages and recurring reminders; new alerts blue, unfinished alerts orange with larger text. Filtering and shared-popup tests passed; build OK. Live seller-account verification unavailable with external Supabase.
 
