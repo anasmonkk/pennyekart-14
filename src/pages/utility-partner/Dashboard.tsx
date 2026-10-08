@@ -286,9 +286,14 @@ const UtilityPartnerDashboard = () => {
         {r.notes && <p className="text-xs text-muted-foreground">{r.notes}</p>}
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {r.status === "pending" && (
-            <Button size="sm" onClick={() => setRequestStatus(r.id, "assigned")}>
-              <Check className="mr-1.5 h-3.5 w-3.5" /> Accept
-            </Button>
+            <>
+              <Button size="sm" onClick={() => setRequestStatus(r.id, "assigned")}>
+                <Check className="mr-1.5 h-3.5 w-3.5" /> Accept
+              </Button>
+              <Button size="sm" variant="outline" className="text-destructive border-destructive/40" onClick={() => cancelRequest(r.id)}>
+                Cancel
+              </Button>
+            </>
           )}
           {["assigned", "in_progress"].includes(r.status) && (
             <Button size="sm" onClick={() => setRequestStatus(r.id, "completed")}>
