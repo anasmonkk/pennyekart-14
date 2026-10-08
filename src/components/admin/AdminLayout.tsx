@@ -23,6 +23,7 @@ const navItems = [
   { label: "Products", icon: Package, path: "/admin/products", perm: "read_products" },
   { label: "Combo Offers", icon: Package, path: "/admin/combos", perm: "read_products" },
   { label: "Offers & Features", icon: Star, path: "/admin/offers", perm: "read_offers" },
+  { label: "Banners", icon: Image, path: "/admin/banners", perm: "read_banners" },
   // Sales & services
   { label: "Orders", icon: ShoppingCart, path: "/admin/orders", perm: "read_orders" },
   { label: "Services", icon: Wrench, path: "/admin/services", perm: "read_services" },
