@@ -1,5 +1,8 @@
 # Roadmap
 
+## Delivery Orders feature cards
+- [x] Finish the Orders feature-card grid and back navigation; two automated tests passed for all five sections and quick filters, and build passed. Live signed-in checks unavailable with external Supabase.
+
 ## Utility seller notification popup
 - [x] Match the utility request popup to the normal seller blue notification layout; sample layout verified at 360px and 390px, with Accept and Later controls tested. Live signed-in booking updates remain unverified (external Supabase session unavailable).
 
