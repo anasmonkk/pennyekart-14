@@ -11,10 +11,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { explainPermission } from "@/lib/permissionPrompt";
+import OrderItemHighlight from "@/components/selling-partner/OrderItemHighlight";
 
 interface OrderItem {
   id?: string;
   name?: string;
+  product_name?: string;
+  variant?: string;
   quantity?: number;
   price?: number;
   mrp?: number;
@@ -42,13 +45,14 @@ interface Props {
   onCancel?: (orderId: string) => void;
   onRequestReturn?: (orderId: string) => void;
   deliveryStaffUserId?: string;
+  highlightItems?: boolean;
 }
 
 const defaultStatusLabel = (s: string) => s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
 const CANCELLABLE = ["pending", "accepted", "confirmed", "packed", "shipped"];
 
-const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultStatusLabel, onCancel, onRequestReturn, deliveryStaffUserId }: Props) => {
+const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultStatusLabel, onCancel, onRequestReturn, deliveryStaffUserId, highlightItems = false }: Props) => {
   const [customerLocation, setCustomerLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [capturedLocation, setCapturedLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -236,6 +240,15 @@ const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultSta
             ) : (
               <div className="space-y-2">
                 {items.map((item, idx) => (
+                  highlightItems ? <OrderItemHighlight key={idx} name={item.name || item.product_name || "Product"} quantity={item.quantity || 1}
+                    variant={item.variant} image={item.image_url || item.image}>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <span className="text-muted-foreground">{item.price != null && `₹${item.price}`}
+                        {item.mrp != null && item.mrp > (item.price ?? 0) && <span className="ml-2 line-through">₹{item.mrp}</span>}
+                      </span>
+                      <span className="font-semibold">₹{((item.price ?? 0) * (item.quantity || 1)).toFixed(0)}</span>
+                    </div>
+                  </OrderItemHighlight> :
                   <div key={idx} className="flex items-center gap-3 rounded-lg border bg-background p-2">
                     {(item.image_url || item.image) && (
                       <img
@@ -268,10 +281,10 @@ const OrderDetailDialog = ({ order, open, onOpenChange, statusLabel = defaultSta
             <div className="space-y-1.5 text-sm">
               {items.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between gap-2">
-                  <span className="text-muted-foreground truncate">
-                    {item.name || "Item"} × {item.quantity || 1}
+                  <span className={highlightItems ? "min-w-0 break-words font-medium [overflow-wrap:anywhere]" : "text-muted-foreground truncate"}>
+                    {item.name || item.product_name || "Item"} × {item.quantity || 1}
                   </span>
-                  <span>₹{((item.price ?? 0) * (item.quantity || 1)).toFixed(2)}</span>
+                  <span className="shrink-0">₹{((item.price ?? 0) * (item.quantity || 1)).toFixed(2)}</span>
                 </div>
               ))}
               <div className="flex items-center justify-between gap-2">

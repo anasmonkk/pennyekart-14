@@ -3,6 +3,7 @@ import { Bell, Clock, MapPin, Package } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HighlightedOrderItems } from "@/components/selling-partner/OrderItemHighlight";
 
 export interface NotificationOrder {
   id: string; status: string; total: number; shipping_address: string | null;
@@ -16,6 +17,7 @@ interface Props {
   renderContact?: (order: NotificationOrder) => ReactNode;
   renderActions: (order: NotificationOrder, isNew: boolean) => ReactNode;
   footer?: ReactNode;
+  highlightItems?: boolean;
 }
 
 export function NotificationDialogFrame({ open, onOpenChange, title, description, tabs, footer, children }: {
@@ -37,7 +39,7 @@ export function NotificationDialogFrame({ open, onOpenChange, title, description
   );
 }
 
-export default function OrderNotificationDialog({ open, onOpenChange, title, pending, active = [], dismissedIds, showTabs = true, renderContact, renderActions, footer }: Props) {
+export default function OrderNotificationDialog({ open, onOpenChange, title, pending, active = [], dismissedIds, showTabs = true, renderContact, renderActions, footer, highlightItems = false }: Props) {
   const [tab, setTab] = useState("new");
   const selectedTab = tab === "new" && !pending.length && active.length ? "active" : tab;
   const orders = !showTabs || selectedTab === "new" ? pending : active;
@@ -65,11 +67,11 @@ export default function OrderNotificationDialog({ open, onOpenChange, title, pen
               {renderContact?.(order)}
               <p className="flex items-start gap-2 text-sm text-muted-foreground"><MapPin className="h-4 w-4 shrink-0 mt-0.5" /><span className="break-words min-w-0">{order.shipping_address || "No delivery address"}</span></p>
               {!!items.length && <div className="border-t pt-3 space-y-2">
-                {items.slice(0, 3).map((item, index) => <div key={index} className="flex gap-2 items-center">
+                {highlightItems ? <HighlightedOrderItems items={items} /> : <>{items.slice(0, 3).map((item, index) => <div key={index} className="flex gap-2 items-center">
                   {item?.image_url && <img src={item.image_url} alt={item.name || "Product"} className="h-10 w-10 shrink-0 rounded border object-cover" />}
                   <div className="min-w-0"><p className="text-sm font-medium break-words">{item?.name || item?.product_name || "Product"}</p><p className="text-xs text-muted-foreground break-words">Qty: {item?.quantity || 1} · ₹{item?.price ?? 0}{item?.variant ? ` · ${item.variant}` : ""}</p></div>
                 </div>)}
-                {items.length > 3 && <p className="text-xs text-muted-foreground">+{items.length - 3} more items</p>}
+                {items.length > 3 && <p className="text-xs text-muted-foreground">+{items.length - 3} more items</p>}</>}
               </div>}
               <div className="border-t pt-3">{renderActions(order, isNew)}</div>
             </article>;

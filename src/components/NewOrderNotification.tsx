@@ -186,6 +186,7 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
         dismissedIds={dismissedIds} busyId={busyId} onAccept={handleAccept} onFinish={handleFinish}
         onLater={handleDismiss} onDetail={setDetailOrder}
       /> : <OrderNotificationDialog
+        highlightItems
         open={open} onOpenChange={setOpen} title="Seller orders"
         pending={pendingOrders} active={inProgressOrders} dismissedIds={dismissedIds}
         renderActions={(order, isNew) => <div className="grid grid-cols-[1fr_auto] gap-2">
@@ -196,7 +197,7 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
           {isNew && !dismissedIds.has(order.id) && <Button variant="ghost" className="col-span-2 h-10" onClick={() => handleDismiss(order.id)}>Later</Button>}
         </div>}
       />}
-      <OrderDetailDialog order={detailOrder} open={!!detailOrder} onOpenChange={(v) => { if (!v) setDetailOrder(null); }} />
+      <OrderDetailDialog highlightItems={role === "seller"} order={detailOrder} open={!!detailOrder} onOpenChange={(v) => { if (!v) setDetailOrder(null); }} />
     </>
   );
 };

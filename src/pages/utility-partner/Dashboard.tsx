@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Wrench, LogOut, Phone, Home, Package, Check, CheckCircle2, Bell, User, ArrowLeft } from "lucide-react";
 import VariantManager from "@/components/utility/VariantManager";
 import UtilityRequestNotificationDialog from "@/components/utility/UtilityRequestNotificationDialog";
+import OrderItemHighlight from "@/components/selling-partner/OrderItemHighlight";
 import PartnerAvatar from "@/components/partner/PartnerAvatar";
 import {
   PRICE_UNITS, REQUEST_STATUSES, formatServicePrice, statusLabel, unitsForCategoryType,
@@ -258,13 +259,15 @@ const UtilityPartnerDashboard = () => {
     >
       <CardContent className="space-y-2 p-4">
         <div className="flex items-start justify-between gap-2">
-          <div>
+          <div className="min-w-0">
             <p className="font-semibold">{r.contact_name}</p>
             <p className="flex items-center gap-1 text-xs text-muted-foreground"><Phone className="h-3 w-3" />{r.contact_phone}</p>
-            <p className="text-xs text-muted-foreground">{serviceName(r.service_id)}</p>
           </div>
-          <Badge variant="outline">{statusLabel(r.status)}</Badge>
+          <Badge variant="outline" className="shrink-0">{statusLabel(r.status)}</Badge>
         </div>
+        <OrderItemHighlight name={serviceName(r.service_id)} variant={r.variant_label} quantity={r.quantity ?? 1}>
+          {!!r.total_amount && <p className="text-sm font-semibold text-primary">₹{Number(r.total_amount)}</p>}
+        </OrderItemHighlight>
         {r.address && <p className="text-sm">{r.address}</p>}
         {r.latitude != null && r.longitude != null && (
           <a
@@ -275,12 +278,6 @@ const UtilityPartnerDashboard = () => {
           >
             Open location on map
           </a>
-        )}
-        {r.variant_label && (
-          <p className="text-sm font-medium text-primary">
-            {r.variant_label} × {r.quantity ?? 1}
-            {r.total_amount ? ` = ₹${Number(r.total_amount)}` : ""}
-          </p>
         )}
         {r.preferred_date && <p className="text-xs text-muted-foreground">Preferred: {r.preferred_date}</p>}
         {r.notes && <p className="text-xs text-muted-foreground">{r.notes}</p>}
