@@ -554,22 +554,29 @@ const UtilityPartnerDashboard = () => {
       <UtilityRequestNotificationDialog
         open={alertOpen} onOpenChange={setAlertOpen} requests={requests}
         serviceName={serviceName} onAccept={(id) => setRequestStatus(id, "assigned")}
+        onComplete={(id) => setRequestStatus(id, "completed")}
         onCancel={cancelRequest} onRemindLater={remindLater}
       />
 
       {/* Floating bell */}
-      {pending > 0 && !alertOpen && (
-        <Button
-          aria-label={`Open service request notifications (${pending})`}
-          onClick={() => setAlertOpen(true)}
-          className="delivery-blue delivery-gradient fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full text-primary-foreground shadow-lg"
-        >
-          <Bell className="h-6 w-6" />
-          <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
-            {pending}
-          </span>
-        </Button>
-      )}
+      {(() => {
+        const unfinishedCount = requests.filter((r) => UTILITY_UNFINISHED_STATUSES.includes(r.status)).length;
+        const total = pending + unfinishedCount;
+        if (total === 0 || alertOpen) return null;
+        return (
+          <Button
+            aria-label={`Open service request notifications (${total})`}
+            onClick={() => setAlertOpen(true)}
+            className={`${pending > 0 ? "delivery-blue motion-safe:animate-bounce" : "seller-pending-theme"} delivery-gradient fixed bottom-20 right-4 z-50 flex h-16 w-auto items-center justify-center gap-2 rounded-lg px-4 text-primary-foreground shadow-lg`}
+          >
+            <Bell className="h-6 w-6" />
+            <span className="text-base font-bold">{pending > 0 ? "New requests" : "Pending requests"}</span>
+            <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
+              {total}
+            </span>
+          </Button>
+        );
+      })()}
     </div>
 
   );
