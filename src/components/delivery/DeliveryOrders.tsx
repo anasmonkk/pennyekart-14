@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Truck, History, Warehouse, Store, RotateCcw, Eye, List, ArrowLeft } from "lucide-react";
@@ -372,13 +372,31 @@ const DeliveryOrders = ({ orders, userId, onRefresh, quickFilter }: Props) => {
   return (
     <>
     <Tabs value={tab} onValueChange={setTab}>
-      <TabsList className="w-full grid grid-cols-5">
-        <TabsTrigger value="micro"><Warehouse className="h-4 w-4 mr-1" /> Micro ({activeMicro.length})</TabsTrigger>
-        <TabsTrigger value="area"><Store className="h-4 w-4 mr-1" /> Area ({activeArea.length})</TabsTrigger>
-        <TabsTrigger value="returns"><RotateCcw className="h-4 w-4 mr-1" /> Returns ({returnOrders.length})</TabsTrigger>
-        <TabsTrigger value="all"><List className="h-4 w-4 mr-1" /> All ({orders.length})</TabsTrigger>
-        <TabsTrigger value="history"><History className="h-4 w-4 mr-1" /> History</TabsTrigger>
-      </TabsList>
+      {tab === "menu" ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" aria-label="Order features">
+          {sectionCards.map((section) => (
+            <Button
+              key={section.tab}
+              variant="outline"
+              onClick={() => setTab(section.tab)}
+              className="h-auto min-h-36 min-w-0 flex-col gap-2 whitespace-normal rounded-lg bg-card p-5 text-center shadow-sm hover:bg-muted/40"
+            >
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                <section.icon className="h-6 w-6 text-primary" />
+              </span>
+              <span className="text-sm font-semibold">{section.label}</span>
+              <span className="text-xs font-normal text-muted-foreground">{section.sub}</span>
+            </Button>
+          ))}
+        </div>
+      ) : (
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setTab("menu")} className="-ml-2 gap-1.5">
+            <ArrowLeft className="h-4 w-4" /> Back to features
+          </Button>
+          <h2 className="text-base font-semibold">{sectionCards.find((section) => section.tab === tab)?.label}</h2>
+        </div>
+      )}
 
       <TabsContent value="micro">
         <Card>
@@ -486,12 +504,12 @@ const DeliveryOrders = ({ orders, userId, onRefresh, quickFilter }: Props) => {
                         {o.status === "cancelled"
                           ? "This order was cancelled"
                           : inReturnFlow
-                          ? "Track this return in the Returns tab"
+                           ? "Track this return in Returns"
                           : o.status === "delivered"
                           ? "Delivered"
                           : o.status === "seller_confirmation_pending"
                           ? "Waiting for seller to accept"
-                          : "Track this order in the Micro / Area tab"}
+                           : "Track this order in Micro / Area Orders"}
                       </span>
                       <Button size="sm" variant="outline" onClick={() => setDetailOrder(o)}><Eye className="h-4 w-4 mr-1" />Details</Button>
                     </div>
