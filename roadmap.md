@@ -9,6 +9,10 @@
 ## Utility seller notification popup
 - [x] Match the utility request popup to the normal seller blue notification layout; sample layout verified at 360px and 390px, with Accept and Later controls tested. Live signed-in booking updates remain unverified (external Supabase session unavailable).
 
+## Selling partner dashboard controls
+- [ ] Fix the pending utility-service reminder popup so it appears and its actions work.
+- [ ] Replace order-status dropdown changes with explicit status buttons, preserving existing order actions.
+
 ## Consistent order popups
 - [ ] Match admin and selling-partner order popups to the delivery blue layout, preserving role-specific actions; verify layout and controls.
 
