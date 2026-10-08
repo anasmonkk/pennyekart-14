@@ -15,7 +15,7 @@ describe("UtilityRequestNotificationDialog", () => {
   it("shows only pending bookings in the shared blue frame and preserves actions", () => {
     const onAccept = vi.fn();
     const onOpenChange = vi.fn();
-    render(<UtilityRequestNotificationDialog open onOpenChange={onOpenChange} requests={[request, { ...request, id: "done", status: "completed", contact_name: "Completed customer" }]} serviceName={() => "Sample service"} onAccept={onAccept} />);
+    render(<UtilityRequestNotificationDialog open onOpenChange={onOpenChange} requests={[request, { ...request, id: "done", status: "completed", contact_name: "Completed customer" }]} serviceName={() => "Sample service"} onAccept={onAccept} onRemindLater={() => onOpenChange(false)} />);
     expect(screen.getByRole("dialog")).toHaveClass("delivery-blue");
     expect(screen.getByText("1 new · awaiting action")).toBeInTheDocument();
     expect(screen.getByText("Sample customer")).toBeInTheDocument();
@@ -23,7 +23,7 @@ describe("UtilityRequestNotificationDialog", () => {
     expect(screen.getByRole("link", { name: "Open location on map" })).toHaveAttribute("href", "https://www.google.com/maps/search/?api=1&query=10,76");
     fireEvent.click(screen.getByRole("button", { name: "Accept request" }));
     expect(onAccept).toHaveBeenCalledWith(request.id);
-    fireEvent.click(screen.getByRole("button", { name: "Later" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remind me later" }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });
