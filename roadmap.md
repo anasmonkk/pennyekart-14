@@ -1,5 +1,8 @@
 # Roadmap
 
+## Delivery Stock feature cards
+- [ ] Convert Stock sections to feature cards matching Orders; verify opening, back navigation, and existing controls.
+
 ## Delivery Orders feature cards
 - [x] Finish the Orders feature-card grid and back navigation; two automated tests passed for all five sections and quick filters, and build passed. Live signed-in checks unavailable with external Supabase.
 
