@@ -16,12 +16,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Wrench, LogOut, Phone, Home, Package, Check, CheckCircle2, Bell, User, ArrowLeft } from "lucide-react";
+import { Plus, Pencil, Trash2, Wrench, LogOut, Phone, Home, Package, Check, CheckCircle2, Bell, BellOff, CircleDot, PauseCircle, User, ArrowLeft } from "lucide-react";
 import VariantManager from "@/components/utility/VariantManager";
 import UtilityRequestNotificationDialog, { UTILITY_UNFINISHED_STATUSES } from "@/components/utility/UtilityRequestNotificationDialog";
 import { SELLER_REMINDER_INTERVAL } from "@/lib/sellerOrderReminders";
 import OrderItemHighlight from "@/components/selling-partner/OrderItemHighlight";
 import PartnerAvatar from "@/components/partner/PartnerAvatar";
+import logo from "@/assets/logo.png";
+import { useUtilityReminderPause } from "@/lib/utilityReminderPause";
 import {
   PRICE_UNITS, REQUEST_STATUSES, formatServicePrice, statusLabel, unitsForCategoryType,
   type UtilityCategory, type UtilityService, type UtilityRequest,
@@ -55,6 +57,7 @@ const UtilityPartnerDashboard = () => {
   const [districtId, setDistrictId] = useState("");
   const [activeTab, setActiveTab] = useState("home");
   const [focusedRequestId, setFocusedRequestId] = useState<string | null>(null);
+  const { paused: remindersPaused, pausedUntil, setPaused: setRemindersPaused } = useUtilityReminderPause(profile?.user_id);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -171,6 +174,7 @@ const UtilityPartnerDashboard = () => {
   const alertIdsRef = useRef<Set<string>>(new Set());
   const lastAlertRef = useRef(0);
   useEffect(() => {
+    if (!profile?.user_id || remindersPaused) return;
     const open = requests.filter((r) => r.status === "pending" || UTILITY_UNFINISHED_STATUSES.includes(r.status));
     const count = open.length;
     const hasNewId = open.some((r) => !alertIdsRef.current.has(r.id));
@@ -180,7 +184,7 @@ const UtilityPartnerDashboard = () => {
     if (dismissedToday() && !hasNewId) { prevPendingRef.current = count; return; }
     if (prevPendingRef.current === -1 || hasNewId || due) { setAlertOpen(true); lastAlertRef.current = Date.now(); }
     prevPendingRef.current = count;
-  }, [requests]);
+  }, [requests, remindersPaused, profile?.user_id]);
 
 
   const save = async () => {
@@ -262,20 +266,20 @@ const UtilityPartnerDashboard = () => {
     <Card
       key={r.id}
       id={`utility-request-${r.id}`}
-      className={r.id === focusedRequestId ? "ring-2 ring-primary" : undefined}
+      className={`min-w-0 rounded-lg ${r.id === focusedRequestId ? "ring-2 ring-primary" : ""}`}
     >
       <CardContent className="space-y-2 p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="font-semibold">{r.contact_name}</p>
-            <p className="flex items-center gap-1 text-xs text-muted-foreground"><Phone className="h-3 w-3" />{r.contact_phone}</p>
+            <p className="break-words font-semibold">{r.contact_name}</p>
+            <p className="flex items-center gap-1 text-xs text-muted-foreground"><Phone className="h-3 w-3 shrink-0" /><span className="min-w-0 break-words">{r.contact_phone}</span></p>
           </div>
-          <Badge variant="outline" className="shrink-0">{statusLabel(r.status)}</Badge>
+          <Badge variant="outline" className="max-w-[45%] shrink-0 whitespace-normal break-words">{statusLabel(r.status)}</Badge>
         </div>
         <OrderItemHighlight name={serviceName(r.service_id)} variant={r.variant_label} quantity={r.quantity ?? 1}>
           {!!r.total_amount && <p className="text-sm font-semibold text-primary">₹{Number(r.total_amount)}</p>}
         </OrderItemHighlight>
-        {r.address && <p className="text-sm">{r.address}</p>}
+        {r.address && <p className="break-words text-sm">{r.address}</p>}
         {r.latitude != null && r.longitude != null && (
           <a
             className="inline-flex items-center gap-1 text-xs font-medium text-primary underline"
@@ -287,25 +291,25 @@ const UtilityPartnerDashboard = () => {
           </a>
         )}
         {r.preferred_date && <p className="text-xs text-muted-foreground">Preferred: {r.preferred_date}</p>}
-        {r.notes && <p className="text-xs text-muted-foreground">{r.notes}</p>}
-        <div className="flex flex-wrap items-center gap-2 pt-1">
+        {r.notes && <p className="break-words text-xs text-muted-foreground">{r.notes}</p>}
+        <div className="grid grid-cols-2 items-center gap-2 pt-2 sm:flex sm:flex-wrap">
           {r.status === "pending" && (
             <>
-              <Button size="sm" onClick={() => setRequestStatus(r.id, "assigned")}>
+              <Button size="sm" className="h-11" onClick={() => setRequestStatus(r.id, "assigned")}>
                 <Check className="mr-1.5 h-3.5 w-3.5" /> Accept
               </Button>
-              <Button size="sm" variant="outline" className="text-destructive border-destructive/40" onClick={() => cancelRequest(r.id)}>
+              <Button size="sm" variant="outline" className="h-11 text-destructive border-destructive/40" onClick={() => cancelRequest(r.id)}>
                 Cancel
               </Button>
             </>
           )}
           {["assigned", "in_progress"].includes(r.status) && (
-            <Button size="sm" onClick={() => setRequestStatus(r.id, "completed")}>
+            <Button size="sm" className="h-11" onClick={() => setRequestStatus(r.id, "completed")}>
               <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Finish
             </Button>
           )}
           <Select value={r.status} onValueChange={(v) => setRequestStatus(r.id, v)}>
-            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="col-span-2 h-11 w-full min-w-0 sm:w-44"><SelectValue /></SelectTrigger>
             <SelectContent>{REQUEST_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
@@ -316,32 +320,44 @@ const UtilityPartnerDashboard = () => {
 
 
   return (
-    <div className="min-h-screen bg-muted/40">
-      <header className="sticky top-0 z-40 border-b bg-primary">
-        <div className="container flex items-center justify-between py-3">
-          <div className="flex items-center gap-2">
-            <Wrench className="h-5 w-5 text-primary-foreground" />
-            <h1 className="text-base font-bold text-primary-foreground sm:text-lg">Utility Partner Dashboard</h1>
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-card px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <img src={logo} alt="Pennyekart" className="h-8 w-auto shrink-0" />
+            <span className="font-semibold text-foreground">Utility Partner</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="text-primary-foreground [&_button]:text-primary-foreground"><NotificationBell /></div>
+          <div className="flex shrink-0 items-center gap-2">
+            <NotificationBell />
             <PartnerAvatar />
-            <div className="flex items-center gap-2 rounded-full bg-primary-foreground/15 px-3 py-1">
-              <Switch checked={available} onCheckedChange={toggleAvailability} />
-              <span className="text-xs font-medium text-primary-foreground">{available ? "Available" : "Busy"}</span>
-            </div>
-
-            <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10" onClick={() => navigate("/")}>
+            <Button size="sm" variant={available ? "default" : "outline"} onClick={() => toggleAvailability(!available)}>
+              {available ? <CircleDot className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
+              {available ? "Available" : "Busy"}
+            </Button>
+            <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Go to homepage" title="Go to homepage" onClick={() => navigate("/")}>
               <Home className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10" onClick={signOut}>
+            <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Sign out" title="Sign out" onClick={signOut}>
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="container space-y-4 py-5">
+      <main className="mx-auto max-w-4xl space-y-6 p-4 pb-24">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+          <div className="flex min-w-0 items-center gap-2">
+            {remindersPaused ? <BellOff className="h-4 w-4 shrink-0 text-muted-foreground" /> : <Bell className="h-4 w-4 shrink-0 text-primary" />}
+            <div className="min-w-0">
+              <Label htmlFor="utility-reminders">Order reminders {remindersPaused ? "off" : "on"}</Label>
+              {remindersPaused && <p className="text-xs text-muted-foreground">Until {new Date(pausedUntil).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{remindersPaused ? "Resume" : "Off for 12 hrs"}</span>
+            <Switch id="utility-reminders" aria-label="Order reminders" checked={!remindersPaused} onCheckedChange={(enabled) => { setRemindersPaused(!enabled); if (!enabled) setAlertOpen(false); }} />
+          </div>
+        </div>
         {/* Greeting */}
         <div className="rounded-2xl bg-gradient-to-br from-primary to-primary/70 p-5 text-primary-foreground">
           <p className="text-sm opacity-90">Hi {profile?.full_name?.split(" ")[0] || "Partner"} 👋</p>
@@ -357,17 +373,13 @@ const UtilityPartnerDashboard = () => {
           {activeTab === "home" ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {homeCards.map((c) => (
-                <button key={c.tab} onClick={() => setActiveTab(c.tab)} className="text-left">
-                  <Card className="h-full shadow-sm transition-colors hover:bg-muted/40">
-                    <CardContent className="flex flex-col items-center gap-2 p-5 text-center">
+                <Button key={c.tab} variant="outline" onClick={() => setActiveTab(c.tab)} className="h-auto min-w-0 flex-col gap-2 whitespace-normal rounded-lg bg-card p-5 text-center shadow-sm hover:bg-muted/40">
                       <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                         <c.icon className="h-6 w-6 text-primary" />
                       </span>
                       <span className="text-sm font-semibold">{c.label}</span>
-                      <span className="text-xs text-muted-foreground truncate max-w-full">{c.sub}</span>
-                    </CardContent>
-                  </Card>
-                </button>
+                       <span className="max-w-full truncate text-xs text-muted-foreground">{c.sub}</span>
+                </Button>
               ))}
             </div>
           ) : (
@@ -441,7 +453,7 @@ const UtilityPartnerDashboard = () => {
             <div className="flex justify-end">
               <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm(emptyService); setEditId(null); } }}>
                 <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Add Service</Button></DialogTrigger>
-                <DialogContent className="max-h-[85vh] overflow-y-auto">
+                <DialogContent className="w-[calc(100%-2rem)] max-h-[85dvh] overflow-y-auto">
                   <DialogHeader><DialogTitle>{editId ? "Edit Service" : "New Service"}</DialogTitle></DialogHeader>
                   <div className="space-y-3">
                     <div><Label>Service Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
@@ -462,7 +474,7 @@ const UtilityPartnerDashboard = () => {
                     </div>
                     <div><Label>Description</Label><Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
                     <div><Label>Image URL</Label><Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} /></div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <div><Label>Price (₹)</Label><Input type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: +e.target.value })} /></div>
                       <div>
                         <Label>Price Type</Label>
@@ -472,7 +484,7 @@ const UtilityPartnerDashboard = () => {
                         </Select>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <div><Label>Contact Phone</Label><Input value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} /></div>
                       <div><Label>WhatsApp</Label><Input value={form.contact_whatsapp} onChange={(e) => setForm({ ...form, contact_whatsapp: e.target.value })} /></div>
                     </div>
@@ -491,16 +503,16 @@ const UtilityPartnerDashboard = () => {
               <div className="grid gap-3 sm:grid-cols-2">
                 {services.map((s) => (
                   <Card key={s.id}>
-                    <CardContent className="flex gap-3 p-4">
-                      {s.image_url && <img src={s.image_url} alt={s.name} className="h-16 w-16 rounded-lg object-cover" loading="lazy" />}
+                    <CardContent className="flex flex-wrap gap-3 p-4">
+                      {s.image_url && <img src={s.image_url} alt={s.name} className="h-16 w-16 shrink-0 rounded-lg object-cover" loading="lazy" />}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-semibold">{s.name}</h3>
-                          <Badge variant={s.is_approved ? "default" : "outline"}>{s.is_approved ? "Approved" : "Pending"}</Badge>
+                           <h3 className="min-w-0 break-words font-semibold">{s.name}</h3>
+                           <Badge className="shrink-0" variant={s.is_approved ? "default" : "outline"}>{s.is_approved ? "Approved" : "Pending"}</Badge>
                         </div>
                         <p className="text-sm text-primary">{formatServicePrice(Number(s.price), s.price_unit)}</p>
                         {s.description && <p className="line-clamp-2 text-xs text-muted-foreground">{s.description}</p>}
-                        <div className="mt-2 flex items-center gap-2">
+                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <Switch checked={s.is_active} onCheckedChange={(v) => toggleActive(s.id, v)} />
                           <span className="text-xs text-muted-foreground">Active</span>
                           {isProductService(s) && (
@@ -508,8 +520,8 @@ const UtilityPartnerDashboard = () => {
                               <Package className="mr-1 h-3.5 w-3.5" /> Packs
                             </Button>
                           )}
-                          <Button variant="ghost" size="sm" onClick={() => openEdit(s)}><Pencil className="h-3.5 w-3.5" /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => remove(s.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                           <Button variant="ghost" size="icon" className="h-9 w-9" aria-label={`Edit ${s.name}`} title="Edit service" onClick={() => openEdit(s)}><Pencil className="h-3.5 w-3.5" /></Button>
+                           <Button variant="ghost" size="icon" className="h-9 w-9" aria-label={`Delete ${s.name}`} title="Delete service" onClick={() => remove(s.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                         </div>
                       </div>
                     </CardContent>
@@ -562,7 +574,7 @@ const UtilityPartnerDashboard = () => {
       {(() => {
         const unfinishedCount = requests.filter((r) => UTILITY_UNFINISHED_STATUSES.includes(r.status)).length;
         const total = pending + unfinishedCount;
-        if (total === 0 || alertOpen) return null;
+         if (total === 0 || alertOpen || remindersPaused) return null;
         return (
           <Button
             aria-label={`Open service request notifications (${total})`}

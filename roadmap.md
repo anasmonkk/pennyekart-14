@@ -1,5 +1,10 @@
 # Roadmap
 
+## Utility seller phone layout and reminder pause
+- [x] Match normal seller container, header, greeting, and launcher sizing; organize utility services, requests, and forms for phones. Sample screens checked at 360px, 390px, and desktop without horizontal overflow; build OK.
+- [x] Add a top reminder control that pauses in-app reminders for 12 hours, persists on reload, and resumes automatically. Three timing/persistence/resume tests and existing popup action test passed; sample switch/reload/resume checked. Firebase unchanged.
+- [ ] Verify the updated screen with a real utility seller account (blocked: external Supabase does not provide an authenticated test session).
+
 ## Seller unfinished-order reminders
 - [x] Include all unfinished order stages and recurring reminders; new alerts blue, unfinished alerts orange with larger text. Filtering and shared-popup tests passed; build OK. Live seller-account verification unavailable with external Supabase.
 
