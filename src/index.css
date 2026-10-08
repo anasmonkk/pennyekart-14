@@ -26,6 +26,27 @@
   background-image: linear-gradient(115deg, hsl(var(--primary)), hsl(var(--delivery-gradient-end)));
 }
 
+/* Seller unfinished reminders opt into orange without changing other roles. */
+.seller-pending-theme {
+  --primary: 24 90% 40%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 24 90% 40%;
+  --delivery-gradient-end: 32 92% 42%;
+  --secondary: 30 100% 94%;
+  --secondary-foreground: 22 88% 28%;
+  --accent: 30 100% 94%;
+  --accent-foreground: 22 88% 28%;
+}
+.dark .seller-pending-theme {
+  --primary: 28 95% 64%;
+  --primary-foreground: 24 80% 10%;
+  --delivery-gradient-end: 32 90% 58%;
+  --secondary: 24 45% 20%;
+  --secondary-foreground: 30 100% 88%;
+  --accent: 24 45% 20%;
+  --accent-foreground: 30 100% 88%;
+}
+
 @layer base {
   :root {
     --background: 40 33% 97%;
