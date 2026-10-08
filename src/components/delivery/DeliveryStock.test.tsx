@@ -25,7 +25,7 @@ describe("Stock feature cards", () => {
     expect(screen.getByRole("button", { name: "Current Stock 1 products" })).toBeInTheDocument();
     for (const label of ["Current Stock", "Transfer", "Transfer History"]) {
       fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${label} \\d`) }));
-      expect(screen.getByRole("heading", { name: label, exact: true })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: new RegExp(`^${label}$`) })).toBeInTheDocument();
       if (label === "Current Stock") {
         expect(screen.getByText("Rice")).toBeInTheDocument();
         fireEvent.change(screen.getByPlaceholderText("Search product..."), { target: { value: "missing" } });
