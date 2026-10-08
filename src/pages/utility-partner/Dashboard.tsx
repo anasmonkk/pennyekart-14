@@ -214,6 +214,11 @@ const UtilityPartnerDashboard = () => {
     else { toast({ title: "Request updated" }); fetchAll(); }
   };
 
+  const cancelRequest = async (id: string) => {
+    if (!window.confirm("Cancel this service request? The customer will see it as cancelled.")) return;
+    await setRequestStatus(id, "cancelled");
+  };
+
   const openEdit = (s: UtilityService) => {
     setForm({
       name: s.name, description: s.description ?? "", image_url: s.image_url ?? "",
@@ -540,6 +545,7 @@ const UtilityPartnerDashboard = () => {
       <UtilityRequestNotificationDialog
         open={alertOpen} onOpenChange={setAlertOpen} requests={requests}
         serviceName={serviceName} onAccept={(id) => setRequestStatus(id, "assigned")}
+        onCancel={cancelRequest} onRemindLater={remindLater}
       />
 
       {/* Floating bell */}
