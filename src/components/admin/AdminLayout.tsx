@@ -11,36 +11,44 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import AdminPendingOrdersNotification from "./AdminPendingOrdersNotification";
 
 const navItems = [
+  // Overview
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin", perm: null },
+  // People & access
   { label: "Users", icon: Users, path: "/admin/users", perm: "read_users" },
   { label: "Deletion Requests", icon: Users, path: "/admin/deletion-requests", perm: "read_users" },
   { label: "Roles & Permissions", icon: ShieldCheck, path: "/admin/roles", perm: null, superOnly: true },
+  { label: "Communities", icon: Users, path: "/admin/communities", perm: "read_users" },
+  // Catalog
   { label: "Categories", icon: Grid3X3, path: "/admin/categories", perm: "read_categories" },
   { label: "Products", icon: Package, path: "/admin/products", perm: "read_products" },
   { label: "Combo Offers", icon: Package, path: "/admin/combos", perm: "read_products" },
-  { label: "Orders", icon: ShoppingCart, path: "/admin/orders", perm: "read_orders" },
+  { label: "Offers & Features", icon: Star, path: "/admin/offers", perm: "read_offers" },
   { label: "Banners", icon: Image, path: "/admin/banners", perm: "read_banners" },
+  // Sales & services
+  { label: "Orders", icon: ShoppingCart, path: "/admin/orders", perm: "read_orders" },
   { label: "Services", icon: Wrench, path: "/admin/services", perm: "read_services" },
   { label: "Utility Services", icon: Hammer, path: "/admin/utility-services", perm: "read_services" },
+  { label: "Penny Prime", icon: Handshake, path: "/admin/penny-prime", perm: "read_penny_prime" },
+  // Operations
   { label: "Locations", icon: MapPin, path: "/admin/locations", perm: "read_locations" },
   { label: "Godowns", icon: Warehouse, path: "/admin/godowns", perm: "read_godowns" },
   { label: "Purchase", icon: ClipboardList, path: "/admin/purchase", perm: "create_stock" },
+  { label: "Stock Control", icon: BarChart3, path: "/admin/stock-control", perm: "read_stock" },
   { label: "Delivery Staff", icon: Truck, path: "/admin/delivery", perm: "read_delivery_staff" },
   { label: "Selling Partners", icon: Store, path: "/admin/sellers", perm: "read_selling_partners" },
-  { label: "Offers & Features", icon: Star, path: "/admin/offers", perm: "read_offers" },
-  { label: "Stock Control", icon: BarChart3, path: "/admin/stock-control", perm: "read_stock" },
-  { label: "App Settings", icon: SlidersHorizontal, path: "/admin/settings", perm: "read_settings" },
-  { label: "Storage Config", icon: Settings, path: "/admin/storage", perm: null, superOnly: true },
+  // Finance
   { label: "Wallets", icon: Wallet, path: "/admin/wallets", perm: "read_wallets" },
   { label: "Platform Margin", icon: Percent, path: "/admin/platform-margin", perm: "read_products" },
-  { label: "Penny Prime", icon: Handshake, path: "/admin/penny-prime", perm: "read_penny_prime" },
+  // Reports
   { label: "Sales Report", icon: BarChart3, path: "/admin/sales-report", perm: "read_reports" },
   { label: "Reports", icon: BarChart3, path: "/admin/reports", perm: "read_reports" },
+  // Settings
+  { label: "App Settings", icon: SlidersHorizontal, path: "/admin/settings", perm: "read_settings" },
+  { label: "Storage Config", icon: Settings, path: "/admin/storage", perm: null, superOnly: true },
   { label: "Chatbot Settings", icon: Bot, path: "/admin/chatbot", perm: "read_settings" },
   { label: "Internal Notifications", icon: Bell, path: "/admin/notifications", perm: "read_settings" },
   { label: "Push Notifications", icon: Bell, path: "/admin/push-notifications", perm: "read_settings" },
   { label: "Scratch & Win", icon: Gift, path: "/admin/scratch-rewards", perm: "read_settings" },
-  { label: "Communities", icon: Users, path: "/admin/communities", perm: "read_users" },
 ];
 
 const NavItems = ({ items, currentPath, onNavigate }: { items: typeof navItems; currentPath: string; onNavigate?: () => void }) => (
