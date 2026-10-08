@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Truck, History, Warehouse, Store, RotateCcw, Eye, List } from "lucide-react";
+import { Truck, History, Warehouse, Store, RotateCcw, Eye, List, ArrowLeft } from "lucide-react";
 import OrderDetailDialog from "@/components/OrderDetailDialog";
 import DeliveryOrderContact from "@/components/delivery/DeliveryOrderContact";
 import { useDeliveryContacts } from "@/hooks/useDeliveryContacts";
@@ -42,7 +42,7 @@ const DeliveryOrders = ({ orders, userId, onRefresh, quickFilter }: Props) => {
   const [dateTo, setDateTo] = useState("");
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
   const [allStatusFilter, setAllStatusFilter] = useState("all");
-  const [tab, setTab] = useState("micro");
+  const [tab, setTab] = useState("menu");
 
   useEffect(() => {
     if (!quickFilter) return;
@@ -89,6 +89,15 @@ const DeliveryOrders = ({ orders, userId, onRefresh, quickFilter }: Props) => {
     if (dateTo && new Date(o.created_at) > new Date(dateTo + "T23:59:59")) return false;
     return true;
   });
+
+  // Feature cards shown when the Orders page opens (same card model as the home screen)
+  const sectionCards = [
+    { tab: "micro", label: "Micro Orders", icon: Warehouse, sub: `${activeMicro.length} pending` },
+    { tab: "area", label: "Area Orders", icon: Store, sub: `${activeArea.length} pending` },
+    { tab: "returns", label: "Returns", icon: RotateCcw, sub: `${returnOrders.length} to handle` },
+    { tab: "all", label: "All Orders", icon: List, sub: `${orders.length} total` },
+    { tab: "history", label: "History", icon: History, sub: `${deliveredOrders.length} finished` },
+  ];
 
   // All orders tab: newest first, with optional status filter
   const ALL_STATUSES = [
