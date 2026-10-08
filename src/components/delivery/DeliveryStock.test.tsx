@@ -24,7 +24,7 @@ describe("Stock feature cards", () => {
     await screen.findByLabelText("Stock features");
     expect(screen.getByRole("button", { name: "Current Stock 1 products" })).toBeInTheDocument();
     for (const label of ["Current Stock", "Transfer", "Transfer History"]) {
-      fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${label} `) }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${label} \\d`) }));
       expect(screen.getByRole("heading", { name: label, exact: true })).toBeInTheDocument();
       if (label === "Current Stock") {
         expect(screen.getByText("Rice")).toBeInTheDocument();
