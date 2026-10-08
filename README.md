@@ -114,4 +114,4 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/c
 06/10/26 barcod
 07/10/26 pennyekart
 07/10/26 back office 
-07/10/26 samrambhaka 
+07/10/26 samrambhaka 08/10
