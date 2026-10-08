@@ -18,7 +18,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Wrench, LogOut, Phone, Home, Package, Check, CheckCircle2, Bell, User, ArrowLeft } from "lucide-react";
 import VariantManager from "@/components/utility/VariantManager";
-import UtilityRequestNotificationDialog from "@/components/utility/UtilityRequestNotificationDialog";
+import UtilityRequestNotificationDialog, { UTILITY_UNFINISHED_STATUSES } from "@/components/utility/UtilityRequestNotificationDialog";
+import { SELLER_REMINDER_INTERVAL } from "@/lib/sellerOrderReminders";
 import OrderItemHighlight from "@/components/selling-partner/OrderItemHighlight";
 import PartnerAvatar from "@/components/partner/PartnerAvatar";
 import {
@@ -167,11 +168,17 @@ const UtilityPartnerDashboard = () => {
     localStorage.setItem("utility_popup_dismissed_date", new Date().toDateString());
     setAlertOpen(false);
   };
+  const alertIdsRef = useRef<Set<string>>(new Set());
+  const lastAlertRef = useRef(0);
   useEffect(() => {
-    const count = requests.filter((r) => r.status === "pending").length;
+    const open = requests.filter((r) => r.status === "pending" || UTILITY_UNFINISHED_STATUSES.includes(r.status));
+    const count = open.length;
+    const hasNewId = open.some((r) => !alertIdsRef.current.has(r.id));
+    alertIdsRef.current = new Set(open.map((r) => r.id));
     if (count === 0) { prevPendingRef.current = count; return; }
-    if (dismissedToday()) { prevPendingRef.current = count; return; }
-    if (prevPendingRef.current === -1 || count > prevPendingRef.current) setAlertOpen(true);
+    const due = Date.now() - lastAlertRef.current >= SELLER_REMINDER_INTERVAL;
+    if (dismissedToday() && !hasNewId) { prevPendingRef.current = count; return; }
+    if (prevPendingRef.current === -1 || hasNewId || due) { setAlertOpen(true); lastAlertRef.current = Date.now(); }
     prevPendingRef.current = count;
   }, [requests]);
 
@@ -547,22 +554,29 @@ const UtilityPartnerDashboard = () => {
       <UtilityRequestNotificationDialog
         open={alertOpen} onOpenChange={setAlertOpen} requests={requests}
         serviceName={serviceName} onAccept={(id) => setRequestStatus(id, "assigned")}
+        onComplete={(id) => setRequestStatus(id, "completed")}
         onCancel={cancelRequest} onRemindLater={remindLater}
       />
 
       {/* Floating bell */}
-      {pending > 0 && !alertOpen && (
-        <Button
-          aria-label={`Open service request notifications (${pending})`}
-          onClick={() => setAlertOpen(true)}
-          className="delivery-blue delivery-gradient fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full text-primary-foreground shadow-lg"
-        >
-          <Bell className="h-6 w-6" />
-          <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
-            {pending}
-          </span>
-        </Button>
-      )}
+      {(() => {
+        const unfinishedCount = requests.filter((r) => UTILITY_UNFINISHED_STATUSES.includes(r.status)).length;
+        const total = pending + unfinishedCount;
+        if (total === 0 || alertOpen) return null;
+        return (
+          <Button
+            aria-label={`Open service request notifications (${total})`}
+            onClick={() => setAlertOpen(true)}
+            className={`${pending > 0 ? "delivery-blue motion-safe:animate-bounce" : "seller-pending-theme"} delivery-gradient fixed bottom-20 right-4 z-50 flex h-16 w-auto items-center justify-center gap-2 rounded-lg px-4 text-primary-foreground shadow-lg`}
+          >
+            <Bell className="h-6 w-6" />
+            <span className="text-base font-bold">{pending > 0 ? "New requests" : "Pending requests"}</span>
+            <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
+              {total}
+            </span>
+          </Button>
+        );
+      })()}
     </div>
 
   );

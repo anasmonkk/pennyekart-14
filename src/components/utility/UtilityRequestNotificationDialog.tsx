@@ -1,9 +1,11 @@
-import { Check, MapPin, Phone, XCircle } from "lucide-react";
+import { Check, CheckCircle2, MapPin, Phone, XCircle } from "lucide-react";
 import OrderItemHighlight from "@/components/selling-partner/OrderItemHighlight";
 import { NotificationDialogFrame } from "@/components/OrderNotificationDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { UtilityRequest } from "@/lib/utilityServices";
+import { statusLabel, type UtilityRequest } from "@/lib/utilityServices";
+
+export const UTILITY_UNFINISHED_STATUSES = ["assigned", "in_progress", "quoted"];
 
 interface Props {
   open: boolean;
@@ -12,16 +14,27 @@ interface Props {
   serviceName: (id: string) => string;
   onAccept: (id: string) => void;
   onCancel?: (id: string) => void;
+  onComplete?: (id: string) => void;
   onRemindLater?: () => void;
 }
 
-export default function UtilityRequestNotificationDialog({ open, onOpenChange, requests, serviceName, onAccept, onCancel, onRemindLater }: Props) {
+export default function UtilityRequestNotificationDialog({ open, onOpenChange, requests, serviceName, onAccept, onCancel, onComplete, onRemindLater }: Props) {
   const pending = requests.filter((request) => request.status === "pending");
+  const unfinished = onComplete ? requests.filter((r) => UTILITY_UNFINISHED_STATUSES.includes(r.status)) : [];
+  const list = [...pending, ...unfinished];
+  const onlyUnfinished = pending.length === 0 && unfinished.length > 0;
+  const description = unfinished.length
+    ? <span className="block text-xl font-bold">{pending.length} new · {unfinished.length} unfinished</span>
+    : `${pending.length} new · awaiting action`;
   return (
-    <NotificationDialogFrame open={open} onOpenChange={onOpenChange} title="Service requests" description={`${pending.length} new · awaiting action`}>
-      {pending.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No pending requests</p>}
-      {pending.map((request) => (
-        <article key={request.id} className="space-y-3 rounded-lg border bg-card p-3">
+    <NotificationDialogFrame open={open} onOpenChange={onOpenChange} pendingTheme={onlyUnfinished}
+      title={onlyUnfinished ? "Pending request alert" : "Service requests"} description={description}>
+      {list.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No pending requests</p>}
+      {list.map((request) => {
+        const isNew = request.status === "pending";
+        return (
+        <article key={request.id} className={`space-y-3 rounded-lg border bg-card p-3 ${isNew ? "" : "seller-pending-theme border-primary/40"}`}>
+          {!isNew && <p className="rounded-md bg-secondary p-3 text-xl font-bold text-secondary-foreground">Pending · Unfinished request</p>}
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="font-mono text-sm font-semibold">#{request.id.slice(0, 8)}</p>
@@ -29,7 +42,7 @@ export default function UtilityRequestNotificationDialog({ open, onOpenChange, r
             </div>
             {!!request.total_amount && <span className="shrink-0 text-base font-semibold text-primary">₹{Number(request.total_amount).toLocaleString("en-IN")}</span>}
           </div>
-          <Badge variant="secondary" className="whitespace-normal">Awaiting acceptance</Badge>
+          <Badge variant="secondary" className="whitespace-normal">{isNew ? "Awaiting acceptance" : statusLabel(request.status)}</Badge>
           <div className="min-w-0 space-y-1">
             <p className="break-words font-semibold">{request.contact_name}</p>
             <p className="flex items-center gap-1 text-sm text-muted-foreground"><Phone className="h-4 w-4 shrink-0" /><span className="min-w-0 break-words">{request.contact_phone}</span></p>
@@ -40,7 +53,9 @@ export default function UtilityRequestNotificationDialog({ open, onOpenChange, r
             <a className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-primary underline" href={`https://www.google.com/maps/search/?api=1&query=${request.latitude},${request.longitude}`} target="_blank" rel="noreferrer"><MapPin className="h-4 w-4 shrink-0" />Open location on map</a>
           )}
           <div className="grid grid-cols-1 gap-2 border-t pt-3">
-            <Button className="delivery-gradient h-11" onClick={() => onAccept(request.id)}><Check className="mr-2 h-4 w-4" />Accept request</Button>
+            {isNew
+              ? <Button className="delivery-gradient h-11" onClick={() => onAccept(request.id)}><Check className="mr-2 h-4 w-4" />Accept request</Button>
+              : <Button className="delivery-gradient h-11" onClick={() => onComplete?.(request.id)}><CheckCircle2 className="mr-2 h-4 w-4" />Mark completed</Button>}
             {onCancel && (
               <Button variant="outline" className="h-11 text-destructive border-destructive/40 hover:bg-destructive/10" onClick={() => onCancel(request.id)}>
                 <XCircle className="mr-2 h-4 w-4" />Cancel request
@@ -49,7 +64,7 @@ export default function UtilityRequestNotificationDialog({ open, onOpenChange, r
             <Button variant="ghost" className="h-10" onClick={() => (onRemindLater ? onRemindLater() : onOpenChange(false))}>Remind me later</Button>
           </div>
         </article>
-      ))}
+      );})}
     </NotificationDialogFrame>
   );
 }
