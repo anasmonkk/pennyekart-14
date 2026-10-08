@@ -18,7 +18,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Wrench, LogOut, Phone, Home, Package, Check, CheckCircle2, Bell, User, ArrowLeft } from "lucide-react";
 import VariantManager from "@/components/utility/VariantManager";
-import UtilityRequestNotificationDialog from "@/components/utility/UtilityRequestNotificationDialog";
+import UtilityRequestNotificationDialog, { UTILITY_UNFINISHED_STATUSES } from "@/components/utility/UtilityRequestNotificationDialog";
+import { SELLER_REMINDER_INTERVAL } from "@/lib/sellerOrderReminders";
 import OrderItemHighlight from "@/components/selling-partner/OrderItemHighlight";
 import PartnerAvatar from "@/components/partner/PartnerAvatar";
 import {
@@ -167,11 +168,17 @@ const UtilityPartnerDashboard = () => {
     localStorage.setItem("utility_popup_dismissed_date", new Date().toDateString());
     setAlertOpen(false);
   };
+  const alertIdsRef = useRef<Set<string>>(new Set());
+  const lastAlertRef = useRef(0);
   useEffect(() => {
-    const count = requests.filter((r) => r.status === "pending").length;
+    const open = requests.filter((r) => r.status === "pending" || UTILITY_UNFINISHED_STATUSES.includes(r.status));
+    const count = open.length;
+    const hasNewId = open.some((r) => !alertIdsRef.current.has(r.id));
+    alertIdsRef.current = new Set(open.map((r) => r.id));
     if (count === 0) { prevPendingRef.current = count; return; }
-    if (dismissedToday()) { prevPendingRef.current = count; return; }
-    if (prevPendingRef.current === -1 || count > prevPendingRef.current) setAlertOpen(true);
+    const due = Date.now() - lastAlertRef.current >= SELLER_REMINDER_INTERVAL;
+    if (dismissedToday() && !hasNewId) { prevPendingRef.current = count; return; }
+    if (prevPendingRef.current === -1 || hasNewId || due) { setAlertOpen(true); lastAlertRef.current = Date.now(); }
     prevPendingRef.current = count;
   }, [requests]);
 
