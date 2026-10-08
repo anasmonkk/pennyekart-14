@@ -6,6 +6,7 @@ import { Bell, Eye, CheckCircle2 } from "lucide-react";
 import OrderDetailDialog from "@/components/OrderDetailDialog";
 import DeliveryOrderNotificationDialog from "@/components/delivery/DeliveryOrderNotificationDialog";
 import { useToast } from "@/hooks/use-toast";
+import { sellerReminderGroup, SELLER_REMINDER_INTERVAL } from "@/lib/sellerOrderReminders";
 
 interface PendingOrder {
   id: string;
@@ -45,6 +46,8 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
   const [detailOrder, setDetailOrder] = useState<PendingOrder | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const prevCountRef = useRef(0);
+  const lastSellerAlertRef = useRef(0);
+  const previousSellerIdsRef = useRef<Set<string>>(new Set());
   const { toast } = useToast();
 
   const playSound = () => {
@@ -72,12 +75,20 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
   const applyOrders = useCallback(
     (all: PendingOrder[]) => {
       const pending = all.filter((o) => PENDING_STATUSES[role].includes(o.status));
-      const active = all.filter((o) => IN_PROGRESS_STATUSES[role].includes(o.status));
+      const active = all.filter((o) => role === "seller" ? sellerReminderGroup(o.status) === "unfinished" : IN_PROGRESS_STATUSES[role].includes(o.status));
       const fresh = pending.filter((o) => !dismissedIds.has(o.id));
-      if (fresh.length > 0 && fresh.length > prevCountRef.current) {
+      const unfinished = [...pending, ...active];
+      const now = Date.now();
+      const sellerAlert = role === "seller" && unfinished.length > 0 && (
+        unfinished.some(o => !previousSellerIdsRef.current.has(o.id)) ||
+        now - lastSellerAlertRef.current >= SELLER_REMINDER_INTERVAL
+      );
+      if (sellerAlert || (role === "delivery" && fresh.length > 0 && fresh.length > prevCountRef.current)) {
         playSound();
         setOpen(true);
+        if (role === "seller") lastSellerAlertRef.current = now;
       }
+      previousSellerIdsRef.current = new Set(unfinished.map(o => o.id));
       prevCountRef.current = fresh.length;
       setPendingOrders(pending);
       setInProgressOrders(active);
@@ -159,7 +170,7 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
   };
 
   const undismissedOrders = pendingOrders.filter((o) => !dismissedIds.has(o.id));
-  const totalBadge = undismissedOrders.length + inProgressOrders.length;
+  const totalBadge = (role === "seller" ? pendingOrders.length : undismissedOrders.length) + inProgressOrders.length;
 
   if (pendingOrders.length === 0 && inProgressOrders.length === 0) return null;
 
@@ -170,11 +181,12 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
         <Button
           aria-label={`Open order notifications (${totalBadge})`}
           onClick={() => setOpen(true)}
-          className={`fixed bottom-20 right-4 z-50 flex items-center justify-center h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg transition-all ${role === "delivery" ? "delivery-blue delivery-gradient" : ""} ${
+          className={`fixed bottom-20 right-4 z-50 flex items-center justify-center ${role === "seller" ? "h-16 w-auto gap-2 px-4 rounded-lg" : "h-14 w-14 rounded-full"} bg-primary text-primary-foreground shadow-lg transition-all ${role === "delivery" || undismissedOrders.length > 0 ? "delivery-blue delivery-gradient" : "seller-pending-theme delivery-gradient"} ${
             undismissedOrders.length > 0 ? "motion-safe:animate-bounce hover:animate-none" : ""
           }`}
         >
           <Bell className="h-6 w-6" />
+          {role === "seller" && <span className="text-base font-bold">{undismissedOrders.length > 0 ? "New orders" : "Pending orders"}</span>}
           <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
             {totalBadge}
           </span>
@@ -187,6 +199,7 @@ const NewOrderNotification = ({ userId, role, onAccept, onRefresh }: Props) => {
         onLater={handleDismiss} onDetail={setDetailOrder}
       /> : <OrderNotificationDialog
         highlightItems
+        sellerReminders
         open={open} onOpenChange={setOpen} title="Seller orders"
         pending={pendingOrders} active={inProgressOrders} dismissedIds={dismissedIds}
         renderActions={(order, isNew) => <div className="grid grid-cols-[1fr_auto] gap-2">

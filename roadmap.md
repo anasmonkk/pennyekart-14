@@ -1,5 +1,8 @@
 # Roadmap
 
+## Seller unfinished-order reminders
+- [x] Include all unfinished order stages and recurring reminders; new alerts blue, unfinished alerts orange with larger text. Filtering and shared-popup tests passed; build OK. Live seller-account verification unavailable with external Supabase.
+
 ## Seller order item visibility
 - [x] Highlight individual items and show full item/service names in normal and utility seller order lists, details, and alerts; existing order-control tests and build passed, sample popups checked at desktop and phone widths. Live seller account orders remain unverified.
 
