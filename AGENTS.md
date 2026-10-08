@@ -1,5 +1,7 @@
 # Architecture rules
 
+- Share the presentation-only OrderItemHighlight across normal and utility seller order views; shared customer/delivery dialogs opt in explicitly so seller styling does not alter other roles or order actions.
+
 - Keep delivery Orders card navigation local to DeliveryOrders while preserving quick-filter and notification deep-link entry into All Orders; presentation changes must not alter order actions.
 - Keep Stock feature navigation local to DeliveryStock; card navigation must preserve the existing stock search, transfer form, and history filters without changing stock operations.
 
