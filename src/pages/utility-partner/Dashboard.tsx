@@ -159,11 +159,18 @@ const UtilityPartnerDashboard = () => {
     return () => { clearInterval(interval); supabase.removeChannel(channel); };
   }, [profile?.user_id, services.length]);
 
-  // Popup when a new pending request arrives
+  // Popup when a new pending request arrives, and on every page load/refresh
+  // while pending requests exist — unless the seller tapped "Remind me later" today.
+  const dismissedToday = () => localStorage.getItem("utility_popup_dismissed_date") === new Date().toDateString();
+  const remindLater = () => {
+    localStorage.setItem("utility_popup_dismissed_date", new Date().toDateString());
+    setAlertOpen(false);
+  };
   useEffect(() => {
     const count = requests.filter((r) => r.status === "pending").length;
-    if (count > prevPendingRef.current && prevPendingRef.current !== -1) setAlertOpen(true);
-    if (prevPendingRef.current === -1 && count > 0) setAlertOpen(true);
+    if (count === 0) { prevPendingRef.current = count; return; }
+    if (dismissedToday()) { prevPendingRef.current = count; return; }
+    if (prevPendingRef.current === -1 || count > prevPendingRef.current) setAlertOpen(true);
     prevPendingRef.current = count;
   }, [requests]);
 
