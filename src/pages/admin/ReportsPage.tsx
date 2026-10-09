@@ -966,17 +966,17 @@ const ReportsPage = () => {
         {/* ── OVERVIEW ── */}
         <TabsContent value="overview" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Total Orders" value={String(filteredOrders.length)} icon={ShoppingCart} sub={`${delivered.length} delivered`} {...cardClick("Total Orders", () => ordersTable(filteredOrders)) />
-            <StatCard label="Gross Revenue" value={fmt(grossRevenue)} icon={TrendingUp} sub={`from ${delivered.length} deliveries`} color="text-green-600" {...cardClick("Gross Revenue — delivered orders", () => financeTable(delivered)) />
-            <StatCard label="Gross Profit" value={fmt(grossProfit)} icon={BarChart3} sub={`${grossMargin.toFixed(1)}% margin`} color={grossProfit >= 0 ? "text-green-600" : "text-destructive"} {...cardClick("Gross Profit — by order", () => financeTable(delivered)) />
-            <StatCard label="Cancellations" value={String(cancelled.length)} icon={TrendingDown} sub={pct(cancelled.length, filteredOrders.length) + " of orders"} color="text-destructive" {...cardClick("Cancelled Orders", () => ordersTable(cancelled)) />
+            <StatCard label="Total Orders" value={String(filteredOrders.length)} icon={ShoppingCart} sub={`${delivered.length} delivered`} {...cardClick("Total Orders", () => ordersTable(filteredOrders))} />
+            <StatCard label="Gross Revenue" value={fmt(grossRevenue)} icon={TrendingUp} sub={`from ${delivered.length} deliveries`} color="text-green-600" {...cardClick("Gross Revenue — delivered orders", () => financeTable(delivered))} />
+            <StatCard label="Gross Profit" value={fmt(grossProfit)} icon={BarChart3} sub={`${grossMargin.toFixed(1)}% margin`} color={grossProfit >= 0 ? "text-green-600" : "text-destructive"} {...cardClick("Gross Profit — by order", () => financeTable(delivered))} />
+            <StatCard label="Cancellations" value={String(cancelled.length)} icon={TrendingDown} sub={pct(cancelled.length, filteredOrders.length) + " of orders"} color="text-destructive" {...cardClick("Cancelled Orders", () => ordersTable(cancelled))} />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Active Products" value={String(products.filter(p => p.is_active).length)} icon={Package} sub={`${products.length} total`} {...cardClick("Active Products", () => productsTable(products.filter(p => p.is_active))) />
-            <StatCard label="Selling Partners" value={String(sellerProfiles.length)} icon={Store} sub={`${sellerProducts.filter(sp => sp.is_approved).length} approved products`} {...cardClick("Selling Partners", () => sellersTable()) />
-            <StatCard label="Delivery Staff" value={String(deliveryStaff.length)} icon={Truck} {...cardClick("Delivery Staff", () => staffTable()) />
-            <StatCard label="Pending Orders" value={String(pending.length)} icon={AlertTriangle} color="text-amber-500" {...cardClick("Pending Orders", () => ordersTable(pending)) />
+            <StatCard label="Active Products" value={String(products.filter(p => p.is_active).length)} icon={Package} sub={`${products.length} total`} {...cardClick("Active Products", () => productsTable(products.filter(p => p.is_active)))} />
+            <StatCard label="Selling Partners" value={String(sellerProfiles.length)} icon={Store} sub={`${sellerProducts.filter(sp => sp.is_approved).length} approved products`} {...cardClick("Selling Partners", () => sellersTable())} />
+            <StatCard label="Delivery Staff" value={String(deliveryStaff.length)} icon={Truck} {...cardClick("Delivery Staff", () => staffTable())} />
+            <StatCard label="Pending Orders" value={String(pending.length)} icon={AlertTriangle} color="text-amber-500" {...cardClick("Pending Orders", () => ordersTable(pending))} />
           </div>
 
           {/* Monthly Revenue & Profit Chart */}
@@ -1039,9 +1039,9 @@ const ReportsPage = () => {
         {/* ── P&L ── */}
         <TabsContent value="pl" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <StatCard label="Gross Revenue" value={fmt(grossRevenue)} icon={TrendingUp} sub="Sum of delivered order totals" color="text-green-600" {...cardClick("Gross Revenue — delivered orders", () => financeTable(delivered)) />
-            <StatCard label="Cost of Goods Sold" value={fmt(cogs)} icon={Package} sub="Sum of purchase_rate × qty" color="text-amber-500" {...cardClick("Cost of Goods Sold — by order", () => financeTable(delivered)) />
-            <StatCard label="Gross Profit" value={fmt(grossProfit)} icon={BarChart3} sub={`${grossMargin.toFixed(1)}% gross margin`} color={grossProfit >= 0 ? "text-green-600" : "text-destructive"} {...cardClick("Gross Profit — by order", () => financeTable(delivered)) />
+            <StatCard label="Gross Revenue" value={fmt(grossRevenue)} icon={TrendingUp} sub="Sum of delivered order totals" color="text-green-600" {...cardClick("Gross Revenue — delivered orders", () => financeTable(delivered))} />
+            <StatCard label="Cost of Goods Sold" value={fmt(cogs)} icon={Package} sub="Sum of purchase_rate × qty" color="text-amber-500" {...cardClick("Cost of Goods Sold — by order", () => financeTable(delivered))} />
+            <StatCard label="Gross Profit" value={fmt(grossProfit)} icon={BarChart3} sub={`${grossMargin.toFixed(1)}% gross margin`} color={grossProfit >= 0 ? "text-green-600" : "text-destructive"} {...cardClick("Gross Profit — by order", () => financeTable(delivered))} />
           </div>
 
           <Card {...cardClick("P&L Summary", () => plTable())}>
@@ -1088,9 +1088,9 @@ const ReportsPage = () => {
         {/* ── PRODUCTS ── */}
         <TabsContent value="products" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard label="Total Products" value={String(products.length)} icon={Package} sub={`${products.filter(p => p.is_active).length} active`} {...cardClick("All Products", () => productsTable(products)) />
-            <StatCard label="Top Product Revenue" value={topProducts[0] ? fmt(topProducts[0].revenue) : "—"} icon={TrendingUp} sub={topProducts[0]?.name} color="text-green-600" {...cardClick("Products by Revenue", () => topProductsTable()) />
-            <StatCard label="Low Stock Alert" value={String(lowStockProds.length)} icon={AlertTriangle} sub="≤5 units" color="text-amber-500" {...cardClick("Low Stock Products", () => productsTable(lowStockProds)) />
+            <StatCard label="Total Products" value={String(products.length)} icon={Package} sub={`${products.filter(p => p.is_active).length} active`} {...cardClick("All Products", () => productsTable(products))} />
+            <StatCard label="Top Product Revenue" value={topProducts[0] ? fmt(topProducts[0].revenue) : "—"} icon={TrendingUp} sub={topProducts[0]?.name} color="text-green-600" {...cardClick("Products by Revenue", () => topProductsTable())} />
+            <StatCard label="Low Stock Alert" value={String(lowStockProds.length)} icon={AlertTriangle} sub="≤5 units" color="text-amber-500" {...cardClick("Low Stock Products", () => productsTable(lowStockProds))} />
           </div>
 
           {/* Top Products */}
@@ -1168,9 +1168,9 @@ const ReportsPage = () => {
         {/* ── SELLERS ── */}
         <TabsContent value="sellers" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard label="Total Sellers" value={String(sellerProfiles.length)} icon={Store} {...cardClick("Sellers", () => sellersTable()) />
-            <StatCard label="Seller Products" value={String(sellerProducts.length)} icon={Package} sub={`${sellerProducts.filter(sp => sp.is_approved).length} approved`} {...cardClick("Seller Products", () => sellerProductsTable(sellerProducts)) />
-            <StatCard label="Total Seller Revenue" value={fmt(sellerPerf.reduce((s, p) => s + p.revenue, 0))} icon={Wallet} color="text-primary" {...cardClick("Seller Revenue", () => sellersTable()) />
+            <StatCard label="Total Sellers" value={String(sellerProfiles.length)} icon={Store} {...cardClick("Sellers", () => sellersTable())} />
+            <StatCard label="Seller Products" value={String(sellerProducts.length)} icon={Package} sub={`${sellerProducts.filter(sp => sp.is_approved).length} approved`} {...cardClick("Seller Products", () => sellerProductsTable(sellerProducts))} />
+            <StatCard label="Total Seller Revenue" value={fmt(sellerPerf.reduce((s, p) => s + p.revenue, 0))} icon={Wallet} color="text-primary" {...cardClick("Seller Revenue", () => sellersTable())} />
           </div>
 
           <Card {...cardClick("Seller Performance", () => sellersTable())}>
@@ -1234,9 +1234,9 @@ const ReportsPage = () => {
         {/* ── DELIVERY ── */}
         <TabsContent value="delivery" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard label="Delivery Staff" value={String(deliveryStaff.length)} icon={Truck} {...cardClick("Delivery Staff", () => staffTable()) />
-            <StatCard label="Orders Delivered" value={String(delivered.length)} icon={CheckCircle} color="text-green-600" {...cardClick("Delivered Orders", () => ordersTable(delivered)) />
-            <StatCard label="Orders Pending" value={String(pending.length)} icon={AlertTriangle} color="text-amber-500" {...cardClick("Pending Orders", () => ordersTable(pending)) />
+            <StatCard label="Delivery Staff" value={String(deliveryStaff.length)} icon={Truck} {...cardClick("Delivery Staff", () => staffTable())} />
+            <StatCard label="Orders Delivered" value={String(delivered.length)} icon={CheckCircle} color="text-green-600" {...cardClick("Delivered Orders", () => ordersTable(delivered))} />
+            <StatCard label="Orders Pending" value={String(pending.length)} icon={AlertTriangle} color="text-amber-500" {...cardClick("Pending Orders", () => ordersTable(pending))} />
           </div>
 
           <Card {...cardClick("Delivery Staff Performance", () => staffTable())}>
@@ -1287,9 +1287,9 @@ const ReportsPage = () => {
         {/* ── STOCK ── */}
         <TabsContent value="stock" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard label="Total Stock Units" value={totalGodownStock.toLocaleString()} icon={Package} sub="Across all godowns" {...cardClick("Stock by Product", () => stockTable()) />
-            <StatCard label="Stock Value (Cost)" value={fmt(totalStockValue)} icon={Wallet} color="text-green-600" {...cardClick("Stock Value by Product", () => stockTable()) />
-            <StatCard label="Low Stock Items" value={String(lowStockProds.length)} icon={AlertTriangle} sub="≤5 units" color="text-amber-500" {...cardClick("Low Stock Products", () => productsTable(lowStockProds)) />
+            <StatCard label="Total Stock Units" value={totalGodownStock.toLocaleString()} icon={Package} sub="Across all godowns" {...cardClick("Stock by Product", () => stockTable())} />
+            <StatCard label="Stock Value (Cost)" value={fmt(totalStockValue)} icon={Wallet} color="text-green-600" {...cardClick("Stock Value by Product", () => stockTable())} />
+            <StatCard label="Low Stock Items" value={String(lowStockProds.length)} icon={AlertTriangle} sub="≤5 units" color="text-amber-500" {...cardClick("Low Stock Products", () => productsTable(lowStockProds))} />
           </div>
 
           <Card {...cardClick("Stock by Product (Godowns)", () => stockTable())}>
@@ -1335,9 +1335,9 @@ const ReportsPage = () => {
         {/* ── GEOGRAPHY ── */}
         <TabsContent value="geography" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard label="Active Areas" value={String(lbPerfArr.length)} icon={Users} {...cardClick("Areas", () => areaTable()) />
-            <StatCard label="Top Area" value={lbPerfArr[0]?.name || "—"} icon={TrendingUp} sub={lbPerfArr[0] ? fmt(lbPerfArr[0].revenue) : ""} color="text-green-600" {...cardClick("Areas", () => areaTable()) />
-            <StatCard label="Top Area Orders" value={String(lbPerfArr[0]?.orders || 0)} icon={ShoppingCart} {...cardClick("Areas", () => areaTable()) />
+            <StatCard label="Active Areas" value={String(lbPerfArr.length)} icon={Users} {...cardClick("Areas", () => areaTable())} />
+            <StatCard label="Top Area" value={lbPerfArr[0]?.name || "—"} icon={TrendingUp} sub={lbPerfArr[0] ? fmt(lbPerfArr[0].revenue) : ""} color="text-green-600" {...cardClick("Areas", () => areaTable())} />
+            <StatCard label="Top Area Orders" value={String(lbPerfArr[0]?.orders || 0)} icon={ShoppingCart} {...cardClick("Areas", () => areaTable())} />
           </div>
 
           <Card {...cardClick("Revenue by Area", () => areaTable())}>
@@ -1385,10 +1385,10 @@ const ReportsPage = () => {
         {/* ── SEARCH ANALYTICS ── */}
         <TabsContent value="search" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Total Searches" value={String(searchAnalytics.totalSearches)} icon={Search} sub="all time filtered" {...cardClick("All Searches", () => searchesTable(filteredSearchHistory)) />
-            <StatCard label="Unique Searchers" value={String(searchAnalytics.uniqueSearchers)} icon={Users} sub="distinct customers" {...cardClick("Searchers", () => searchersTable()) />
-            <StatCard label="Zero-Result Searches" value={String(searchAnalytics.zeroResultTotal)} icon={AlertTriangle} sub={pct(searchAnalytics.zeroResultTotal, searchAnalytics.totalSearches) + " of searches"} color="text-destructive" {...cardClick("Zero-Result Searches", () => searchesTable(filteredSearchHistory.filter(sh => (sh.result_count ?? 0) === 0))) />
-            <StatCard label="Avg Searches/User" value={searchAnalytics.uniqueSearchers > 0 ? (searchAnalytics.totalSearches / searchAnalytics.uniqueSearchers).toFixed(1) : "0"} icon={BarChart3} {...cardClick("Searches per User", () => searchersTable()) />
+            <StatCard label="Total Searches" value={String(searchAnalytics.totalSearches)} icon={Search} sub="all time filtered" {...cardClick("All Searches", () => searchesTable(filteredSearchHistory))} />
+            <StatCard label="Unique Searchers" value={String(searchAnalytics.uniqueSearchers)} icon={Users} sub="distinct customers" {...cardClick("Searchers", () => searchersTable())} />
+            <StatCard label="Zero-Result Searches" value={String(searchAnalytics.zeroResultTotal)} icon={AlertTriangle} sub={pct(searchAnalytics.zeroResultTotal, searchAnalytics.totalSearches) + " of searches"} color="text-destructive" {...cardClick("Zero-Result Searches", () => searchesTable(filteredSearchHistory.filter(sh => (sh.result_count ?? 0) === 0)))} />
+            <StatCard label="Avg Searches/User" value={searchAnalytics.uniqueSearchers > 0 ? (searchAnalytics.totalSearches / searchAnalytics.uniqueSearchers).toFixed(1) : "0"} icon={BarChart3} {...cardClick("Searches per User", () => searchersTable())} />
           </div>
 
           {/* Search Volume Chart */}
@@ -1506,17 +1506,17 @@ const ReportsPage = () => {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Total Customers" value={String(customerAnalytics.totalCustomers)} icon={Users} {...cardClick("All Customers", () => customersTable(customerAnalytics.filtered)) />
-            <StatCard label="Active Customers" value={String(customerAnalytics.active.length)} icon={UserCheck} sub={pct(customerAnalytics.active.length, customerAnalytics.totalCustomers)} color="text-green-600" {...cardClick("Active Customers", () => customersTable(customerAnalytics.active)) />
-            <StatCard label="Inactive Customers" value={String(customerAnalytics.inactive.length)} icon={UserX} sub={`No order in ${custInactiveDays}+ days`} color="text-destructive" {...cardClick("Inactive Customers", () => customersTable(customerAnalytics.inactive)) />
-            <StatCard label="Never Ordered" value={String(customerAnalytics.neverOrdered.length)} icon={AlertTriangle} sub={pct(customerAnalytics.neverOrdered.length, customerAnalytics.totalCustomers)} color="text-amber-500" {...cardClick("Never Ordered", () => customersTable(customerAnalytics.neverOrdered)) />
+            <StatCard label="Total Customers" value={String(customerAnalytics.totalCustomers)} icon={Users} {...cardClick("All Customers", () => customersTable(customerAnalytics.filtered))} />
+            <StatCard label="Active Customers" value={String(customerAnalytics.active.length)} icon={UserCheck} sub={pct(customerAnalytics.active.length, customerAnalytics.totalCustomers)} color="text-green-600" {...cardClick("Active Customers", () => customersTable(customerAnalytics.active))} />
+            <StatCard label="Inactive Customers" value={String(customerAnalytics.inactive.length)} icon={UserX} sub={`No order in ${custInactiveDays}+ days`} color="text-destructive" {...cardClick("Inactive Customers", () => customersTable(customerAnalytics.inactive))} />
+            <StatCard label="Never Ordered" value={String(customerAnalytics.neverOrdered.length)} icon={AlertTriangle} sub={pct(customerAnalytics.neverOrdered.length, customerAnalytics.totalCustomers)} color="text-amber-500" {...cardClick("Never Ordered", () => customersTable(customerAnalytics.neverOrdered))} />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="New Customers (7d)" value={String(customerAnalytics.newCust.length)} icon={UserPlus} color="text-blue-500" {...cardClick("New Customers (7 days)", () => customersTable(customerAnalytics.newCust)) />
-            <StatCard label="Repeat Customers" value={String(customerAnalytics.repeatCustomers.length)} icon={Activity} sub={pct(customerAnalytics.repeatCustomers.length, customerAnalytics.totalCustomers)} {...cardClick("Repeat Customers", () => customersTable(customerAnalytics.repeatCustomers)) />
-            <StatCard label="Customer Revenue" value={fmt(customerAnalytics.totalRevenue)} icon={TrendingUp} color="text-green-600" {...cardClick("Customer Revenue", () => customersTable([...customerAnalytics.filtered].sort((a, b) => b.totalSpent - a.totalSpent))) />
-            <StatCard label="Avg Order Value" value={fmt(customerAnalytics.avgOrderValue)} icon={ShoppingCart} {...cardClick("Customers by Average Order", () => customersTable(customerAnalytics.active)) />
+            <StatCard label="New Customers (7d)" value={String(customerAnalytics.newCust.length)} icon={UserPlus} color="text-blue-500" {...cardClick("New Customers (7 days)", () => customersTable(customerAnalytics.newCust))} />
+            <StatCard label="Repeat Customers" value={String(customerAnalytics.repeatCustomers.length)} icon={Activity} sub={pct(customerAnalytics.repeatCustomers.length, customerAnalytics.totalCustomers)} {...cardClick("Repeat Customers", () => customersTable(customerAnalytics.repeatCustomers))} />
+            <StatCard label="Customer Revenue" value={fmt(customerAnalytics.totalRevenue)} icon={TrendingUp} color="text-green-600" {...cardClick("Customer Revenue", () => customersTable([...customerAnalytics.filtered].sort((a, b) => b.totalSpent - a.totalSpent)))} />
+            <StatCard label="Avg Order Value" value={fmt(customerAnalytics.avgOrderValue)} icon={ShoppingCart} {...cardClick("Customers by Average Order", () => customersTable(customerAnalytics.active))} />
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
