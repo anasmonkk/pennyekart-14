@@ -644,7 +644,7 @@ const ReportsPage = () => {
       rows={sellerProfiles.map(p => {
         const perf = sellerPerfMap[p.user_id];
         return [p.full_name || p.user_id, p.mobile_number || "—", sellerProducts.filter(sp => sp.seller_id === p.user_id).length, perf.orders, fmt(perf.revenue), fmt(perf.settled), fmt(perf.balance)];
-      }).sort((a, b) => 0)}
+      })}
       empty="No sellers yet"
     />
   );
