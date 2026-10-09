@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode, type KeyboardEvent } from "react";
 import { format, subDays, subMonths, startOfDay, endOfDay, isWithinInterval, differenceInDays } from "date-fns";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, CalendarIcon, Filter } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CalendarIcon, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,8 +46,8 @@ const fmt = (n: number) => `₹${n.toLocaleString("en-IN", { maximumFractionDigi
 const pct = (n: number, d: number) => d ? `${((n / d) * 100).toFixed(1)}%` : "—";
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
-const StatCard = ({ label, value, icon: Icon, sub, color = "text-primary" }: { label: string; value: string; icon: any; sub?: string; color?: string }) => (
-  <Card>
+const StatCard = ({ label, value, icon: Icon, sub, color = "text-primary", ...cardProps }: { label: string; value: string; icon: any; sub?: string; color?: string } & React.ComponentProps<typeof Card>) => (
+  <Card {...cardProps}>
     <CardHeader className="flex flex-row items-center justify-between pb-2">
       <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
       <Icon className={`h-5 w-5 ${color}`} />
@@ -59,7 +59,31 @@ const StatCard = ({ label, value, icon: Icon, sub, color = "text-primary" }: { l
   </Card>
 );
 
+// ─── Popup table ─────────────────────────────────────────────────────────────
+type Col = { label: string; right?: boolean };
+const MAX_ROWS = 1000;
+const DetailTable = ({ cols, rows, empty = "Nothing to show" }: { cols: Col[]; rows: ReactNode[][]; empty?: string }) =>
+  rows.length === 0 ? (
+    <p className="text-center text-muted-foreground py-8">{empty}</p>
+  ) : (
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>{cols.map(c => <TableHead key={c.label} className={c.right ? "text-right" : ""}>{c.label}</TableHead>)}</TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.slice(0, MAX_ROWS).map((r, i) => (
+            <TableRow key={i}>{r.map((cell, j) => <TableCell key={j} className={cols[j]?.right ? "text-right" : ""}>{cell}</TableCell>)}</TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {rows.length > MAX_ROWS && <p className="text-xs text-muted-foreground text-center mt-2">Showing first {MAX_ROWS} of {rows.length}</p>}
+    </>
+  );
+const Summary = ({ children }: { children: ReactNode }) => <p className="mb-3 text-sm text-muted-foreground">{children}</p>;
+
 const ReportsPage = () => {
+  const [detail, setDetail] = useState<{ title: string; body: ReactNode } | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [sellerProducts, setSellerProducts] = useState<SellerProduct[]>([]);
@@ -499,6 +523,279 @@ const ReportsPage = () => {
     };
   }, [profiles, orders, custInactiveDays, filterDistrict, filterLocalBody, filterWard, localBodyIdsForDistrict, dateFrom, dateTo, lbMap]);
 
+  // ─── Click-to-open detail popups ───────────────────────────────────────────
+  const cardClick = (title: string, build: () => ReactNode) => {
+    const open = () => setDetail({ title, body: build() });
+    return {
+      onClick: open,
+      role: "button" as const,
+      tabIndex: 0,
+      onKeyDown: (e: KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } },
+      className: "cursor-pointer transition-colors hover:border-primary/60 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    };
+  };
+
+  const custName = (id: string | null) => (id ? profileMap[id]?.full_name || "Customer" : "—");
+  const orderCost = (o: Order) =>
+    (Array.isArray(o.items) ? o.items : []).reduce(
+      (sum: number, it: any) => sum + (productMap[it.id]?.purchase_rate ?? sellerProdMap[it.id]?.purchase_rate ?? 0) * (it.quantity || 1), 0);
+  const statusBadge = (st: string) => (
+    <Badge variant={st === "delivered" ? "default" : st === "cancelled" ? "destructive" : "secondary"}>{st.replace(/_/g, " ")}</Badge>
+  );
+  const shortDate = (d: string | null) => (d ? format(new Date(d), "dd MMM yy") : "—");
+
+  const ordersTable = (list: Order[]) => (
+    <>
+      <Summary>{list.length} orders · Total value {fmt(list.reduce((sum, o) => sum + (o.total || 0), 0))}</Summary>
+      <DetailTable
+        cols={[{ label: "Order" }, { label: "Customer" }, { label: "Status" }, { label: "Items", right: true }, { label: "Total", right: true }, { label: "Date" }]}
+        rows={list.map(o => [
+          <span className="font-mono text-xs">{o.id.slice(0, 8)}…</span>, custName(o.user_id), statusBadge(o.status),
+          Array.isArray(o.items) ? o.items.length : 0, fmt(o.total || 0), shortDate(o.created_at),
+        ])}
+        empty="No orders"
+      />
+    </>
+  );
+
+  const financeTable = (list: Order[]) => {
+    const rev = list.reduce((sum, o) => sum + (o.total || 0), 0);
+    const cost = list.reduce((sum, o) => sum + orderCost(o), 0);
+    return (
+      <>
+        <Summary>{list.length} delivered orders · Revenue {fmt(rev)} · Cost {fmt(cost)} · Profit {fmt(rev - cost)} ({pct(rev - cost, rev)})</Summary>
+        <DetailTable
+          cols={[{ label: "Order" }, { label: "Customer" }, { label: "Date" }, { label: "Revenue", right: true }, { label: "Cost", right: true }, { label: "Profit", right: true }]}
+          rows={list.map(o => {
+            const c = orderCost(o); const r = o.total || 0;
+            return [<span className="font-mono text-xs">{o.id.slice(0, 8)}…</span>, custName(o.user_id), shortDate(o.created_at), fmt(r), fmt(c),
+              <span className={r - c >= 0 ? "text-green-600" : "text-destructive"}>{fmt(r - c)}</span>];
+          })}
+          empty="No delivered orders"
+        />
+      </>
+    );
+  };
+
+  const monthlyTable = () => (
+    <DetailTable
+      cols={[{ label: "Month" }, { label: "Orders", right: true }, { label: "Revenue", right: true }, { label: "COGS", right: true }, { label: "Profit", right: true }, { label: "Margin", right: true }]}
+      rows={Object.entries(monthlyMap).map(([m, v]) => [m, v.orders, fmt(v.revenue), fmt(v.cogs),
+        <span className={v.revenue - v.cogs >= 0 ? "text-green-600" : "text-destructive"}>{fmt(v.revenue - v.cogs)}</span>, pct(v.revenue - v.cogs, v.revenue)])}
+      empty="No delivered orders"
+    />
+  );
+
+  const plRows = [
+    { label: "Gross Revenue (Delivered Orders)", value: fmt(grossRevenue), bold: false },
+    { label: "(-) Cost of Goods Sold (COGS)", value: fmt(cogs), bold: false },
+    { label: "Gross Profit", value: fmt(grossProfit), bold: true },
+    { label: "Gross Margin %", value: `${grossMargin.toFixed(2)}%`, bold: true },
+    { label: "Total Orders", value: String(orders.length), bold: false },
+    { label: "Delivered Orders", value: String(delivered.length), bold: false },
+    { label: "Cancelled Orders", value: String(cancelled.length), bold: false },
+    { label: "Pending Orders", value: String(pending.length), bold: false },
+    { label: "Average Order Value (Delivered)", value: delivered.length ? fmt(grossRevenue / delivered.length) : "—", bold: false },
+  ];
+  const plTable = () => (
+    <Table>
+      <TableBody>
+        {plRows.map(row => (
+          <TableRow key={row.label}>
+            <TableCell className={row.bold ? "font-semibold" : ""}>{row.label}</TableCell>
+            <TableCell className={`text-right ${row.bold ? "font-bold text-lg" : ""}`}>{row.value}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
+  const categoryTable = () => (
+    <DetailTable
+      cols={[{ label: "Category" }, { label: "Units Sold", right: true }, { label: "Revenue", right: true }, { label: "% of Revenue", right: true }]}
+      rows={Object.values(catMap).sort((a, b) => b.revenue - a.revenue).map(c => [c.name, c.sold, fmt(c.revenue), pct(c.revenue, Object.values(catMap).reduce((sum, x) => sum + x.revenue, 0))])}
+      empty="No data yet"
+    />
+  );
+
+  const productsTable = (list: Product[]) => (
+    <>
+      <Summary>{list.length} products</Summary>
+      <DetailTable
+        cols={[{ label: "Product" }, { label: "Category" }, { label: "Stock", right: true }, { label: "Price", right: true }, { label: "MRP", right: true }, { label: "Status" }]}
+        rows={list.map(p => [p.name, p.category || "—", <Badge variant={p.stock <= 5 ? "destructive" : "secondary"}>{p.stock}</Badge>, `₹${p.price}`, `₹${p.mrp}`, p.is_active ? "Active" : "Inactive"])}
+        empty="No products"
+      />
+    </>
+  );
+
+  const topProductsTable = () => (
+    <DetailTable
+      cols={[{ label: "Product" }, { label: "Units Sold", right: true }, { label: "Revenue", right: true }, { label: "Profit", right: true }, { label: "Margin", right: true }]}
+      rows={Object.values(prodSales).sort((a, b) => b.revenue - a.revenue).map(p => [p.name, p.sold, fmt(p.revenue),
+        <span className={p.profit >= 0 ? "text-green-600" : "text-destructive"}>{fmt(p.profit)}</span>, pct(p.profit, p.revenue)])}
+      empty="No sales data"
+    />
+  );
+
+  const sellersTable = () => (
+    <DetailTable
+      cols={[{ label: "Seller" }, { label: "Mobile" }, { label: "Products", right: true }, { label: "Delivered", right: true }, { label: "Revenue", right: true }, { label: "Settled", right: true }, { label: "Wallet", right: true }]}
+      rows={sellerProfiles.map(p => {
+        const perf = sellerPerfMap[p.user_id];
+        return [p.full_name || p.user_id, p.mobile_number || "—", sellerProducts.filter(sp => sp.seller_id === p.user_id).length, perf.orders, fmt(perf.revenue), fmt(perf.settled), fmt(perf.balance)];
+      })}
+      empty="No sellers yet"
+    />
+  );
+
+  const sellerProductsTable = (list: SellerProduct[]) => (
+    <>
+      <Summary>{list.length} seller products</Summary>
+      <DetailTable
+        cols={[{ label: "Product" }, { label: "Seller" }, { label: "Approval" }, { label: "Stock", right: true }, { label: "Price", right: true }]}
+        rows={list.map(sp => [sp.name, profileMap[sp.seller_id]?.full_name || "Seller", sp.is_approved ? <Badge>Approved</Badge> : <Badge variant="destructive">Pending</Badge>, sp.stock, `₹${sp.price}`])}
+        empty="No seller products"
+      />
+    </>
+  );
+
+  const staffTable = () => (
+    <DetailTable
+      cols={[{ label: "Staff" }, { label: "Mobile" }, { label: "Delivered", right: true }, { label: "Pending", right: true }, { label: "Success Rate", right: true }]}
+      rows={deliveryStaff.map(p => {
+        const sp = staffPerf[p.user_id]; const total = sp.delivered + sp.pending;
+        return [sp.name, p.mobile_number || "—", sp.delivered, sp.pending, total > 0 ? `${((sp.delivered / total) * 100).toFixed(0)}%` : "—"];
+      })}
+      empty="No delivery staff yet"
+    />
+  );
+
+  const stockTable = () => {
+    const agg: Record<string, { name: string; qty: number; value: number; batches: number }> = {};
+    godownStock.forEach(g => {
+      if (!agg[g.product_id]) agg[g.product_id] = { name: productMap[g.product_id]?.name || g.product_id, qty: 0, value: 0, batches: 0 };
+      agg[g.product_id].qty += g.quantity; agg[g.product_id].value += g.quantity * g.purchase_price; agg[g.product_id].batches++;
+    });
+    const rows = Object.values(agg).sort((a, b) => b.qty - a.qty);
+    return (
+      <>
+        <Summary>{totalGodownStock.toLocaleString()} units · Stock value {fmt(totalStockValue)}</Summary>
+        <DetailTable
+          cols={[{ label: "Product" }, { label: "Batches", right: true }, { label: "Godown Stock", right: true }, { label: "Avg Cost", right: true }, { label: "Stock Value", right: true }]}
+          rows={rows.map(r => [r.name, r.batches, r.qty, r.qty ? fmt(r.value / r.qty) : "—", fmt(r.value)])}
+          empty="No godown stock"
+        />
+      </>
+    );
+  };
+
+  const areaTable = () => (
+    <DetailTable
+      cols={[{ label: "Area" }, { label: "Orders", right: true }, { label: "Revenue", right: true }, { label: "Avg Order Value", right: true }, { label: "% of Revenue", right: true }]}
+      rows={Object.values(lbPerf).sort((a, b) => b.revenue - a.revenue).map(lb => [lb.name, lb.orders, fmt(lb.revenue), lb.orders ? fmt(lb.revenue / lb.orders) : "—", pct(lb.revenue, grossRevenue)])}
+      empty="No location data"
+    />
+  );
+
+  const searchesTable = (list: typeof searchHistory) => (
+    <>
+      <Summary>{list.length} searches</Summary>
+      <DetailTable
+        cols={[{ label: "Search Query" }, { label: "Customer" }, { label: "Results", right: true }, { label: "Date" }]}
+        rows={list.map(sh => [sh.search_query, custName(sh.customer_user_id), <Badge variant={(sh.result_count ?? 0) === 0 ? "destructive" : "secondary"}>{sh.result_count ?? 0}</Badge>, shortDate(sh.created_at)])}
+        empty="No search data"
+      />
+    </>
+  );
+
+  const searchersTable = () => {
+    const m: Record<string, { count: number; zero: number; last: string }> = {};
+    filteredSearchHistory.forEach(sh => {
+      const r = m[sh.customer_user_id] || (m[sh.customer_user_id] = { count: 0, zero: 0, last: sh.created_at });
+      r.count++; if ((sh.result_count ?? 0) === 0) r.zero++; if (sh.created_at > r.last) r.last = sh.created_at;
+    });
+    return (
+      <DetailTable
+        cols={[{ label: "Customer" }, { label: "Searches", right: true }, { label: "Zero-Result", right: true }, { label: "Last Search" }]}
+        rows={Object.entries(m).sort((a, b) => b[1].count - a[1].count).map(([id, r]) => [custName(id), r.count, r.zero, shortDate(r.last)])}
+        empty="No search data"
+      />
+    );
+  };
+
+  const dailySearchTable = () => {
+    const m: Record<string, number> = {};
+    filteredSearchHistory.forEach(sh => { const d = format(new Date(sh.created_at), "yyyy-MM-dd"); m[d] = (m[d] || 0) + 1; });
+    return (
+      <DetailTable
+        cols={[{ label: "Day" }, { label: "Searches", right: true }]}
+        rows={Object.entries(m).sort((a, b) => b[0].localeCompare(a[0])).map(([d, n]) => [format(new Date(d), "dd MMM yyyy"), n])}
+        empty="No search data"
+      />
+    );
+  };
+
+  const queryTable = (zeroOnly: boolean) => {
+    const m: Record<string, { count: number; results: number; zero: number }> = {};
+    filteredSearchHistory.forEach(sh => {
+      const q = sh.search_query.toLowerCase().trim();
+      const r = m[q] || (m[q] = { count: 0, results: 0, zero: 0 });
+      r.count++; r.results += sh.result_count ?? 0; if ((sh.result_count ?? 0) === 0) r.zero++;
+    });
+    const rows = Object.entries(m).filter(([, r]) => !zeroOnly || r.zero > 0).sort((a, b) => (zeroOnly ? b[1].zero - a[1].zero : b[1].count - a[1].count));
+    return (
+      <DetailTable
+        cols={zeroOnly ? [{ label: "#" }, { label: "Search Query" }, { label: "Times", right: true }] : [{ label: "#" }, { label: "Search Query" }, { label: "Count", right: true }, { label: "Avg Results", right: true }]}
+        rows={rows.map(([q, r], i) => zeroOnly ? [i + 1, q, <Badge variant="destructive">{r.zero}</Badge>] : [i + 1, q, r.count, <Badge variant={r.count && Math.round(r.results / r.count) === 0 ? "destructive" : "secondary"}>{r.count ? Math.round(r.results / r.count) : 0}</Badge>])}
+        empty={zeroOnly ? "No zero-result searches found" : "No search data"}
+      />
+    );
+  };
+
+  type CustList = typeof customerAnalytics.filtered;
+  const customersTable = (list: CustList) => (
+    <>
+      <Summary>{list.length} customers · Spent {fmt(list.reduce((sum, c) => sum + c.totalSpent, 0))}</Summary>
+      <DetailTable
+        cols={[{ label: "Customer" }, { label: "Mobile" }, { label: "Area" }, { label: "Ward" }, { label: "Status" }, { label: "Orders", right: true }, { label: "Total Spent", right: true }, { label: "Last Order" }]}
+        rows={list.map(c => [c.name, c.mobile || "—", c.localBodyId ? lbMap[c.localBodyId] || "—" : "—", c.wardNumber || "—",
+          <Badge variant={c.status === "active" ? "default" : c.status === "inactive" ? "destructive" : c.status === "new" ? "outline" : "secondary"}>{c.status === "never_ordered" ? "Never Ordered" : c.status}</Badge>,
+          c.orderCount, c.totalSpent > 0 ? fmt(c.totalSpent) : "—", shortDate(c.lastOrderDate)])}
+        empty="No customers found"
+      />
+    </>
+  );
+
+  const customerAreaTable = () => {
+    const m: Record<string, { total: number; active: number; inactive: number; never: number }> = {};
+    customerAnalytics.filtered.forEach(c => {
+      const n = c.localBodyId ? lbMap[c.localBodyId] || "Unknown" : "Unknown";
+      const r = m[n] || (m[n] = { total: 0, active: 0, inactive: 0, never: 0 });
+      r.total++; if (c.status === "active") r.active++; else if (c.status === "inactive") r.inactive++; else r.never++;
+    });
+    return (
+      <DetailTable
+        cols={[{ label: "Area" }, { label: "Customers", right: true }, { label: "Active", right: true }, { label: "Inactive", right: true }, { label: "New / Never Ordered", right: true }]}
+        rows={Object.entries(m).sort((a, b) => b[1].total - a[1].total).map(([n, r]) => [n, r.total, r.active, r.inactive, r.never])}
+        empty="No location data"
+      />
+    );
+  };
+
+  const statusOrdersTable = () => {
+    const m: Record<string, number> = {};
+    filteredOrders.forEach(o => { m[o.status] = (m[o.status] || 0) + 1; });
+    return (
+      <>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {Object.entries(m).sort((a, b) => b[1] - a[1]).map(([st, n]) => <span key={st} className="flex items-center gap-1 text-sm">{statusBadge(st)} {n}</span>)}
+        </div>
+        {ordersTable(filteredOrders)}
+      </>
+    );
+  };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -669,21 +966,21 @@ const ReportsPage = () => {
         {/* ── OVERVIEW ── */}
         <TabsContent value="overview" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Total Orders" value={String(filteredOrders.length)} icon={ShoppingCart} sub={`${delivered.length} delivered`} />
-            <StatCard label="Gross Revenue" value={fmt(grossRevenue)} icon={TrendingUp} sub={`from ${delivered.length} deliveries`} color="text-green-600" />
-            <StatCard label="Gross Profit" value={fmt(grossProfit)} icon={BarChart3} sub={`${grossMargin.toFixed(1)}% margin`} color={grossProfit >= 0 ? "text-green-600" : "text-destructive"} />
-            <StatCard label="Cancellations" value={String(cancelled.length)} icon={TrendingDown} sub={pct(cancelled.length, filteredOrders.length) + " of orders"} color="text-destructive" />
+            <StatCard label="Total Orders" value={String(filteredOrders.length)} icon={ShoppingCart} sub={`${delivered.length} delivered`} {...cardClick("Total Orders", () => ordersTable(filteredOrders))} />
+            <StatCard label="Gross Revenue" value={fmt(grossRevenue)} icon={TrendingUp} sub={`from ${delivered.length} deliveries`} color="text-green-600" {...cardClick("Gross Revenue — delivered orders", () => financeTable(delivered))} />
+            <StatCard label="Gross Profit" value={fmt(grossProfit)} icon={BarChart3} sub={`${grossMargin.toFixed(1)}% margin`} color={grossProfit >= 0 ? "text-green-600" : "text-destructive"} {...cardClick("Gross Profit — by order", () => financeTable(delivered))} />
+            <StatCard label="Cancellations" value={String(cancelled.length)} icon={TrendingDown} sub={pct(cancelled.length, filteredOrders.length) + " of orders"} color="text-destructive" {...cardClick("Cancelled Orders", () => ordersTable(cancelled))} />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Active Products" value={String(products.filter(p => p.is_active).length)} icon={Package} sub={`${products.length} total`} />
-            <StatCard label="Selling Partners" value={String(sellerProfiles.length)} icon={Store} sub={`${sellerProducts.filter(sp => sp.is_approved).length} approved products`} />
-            <StatCard label="Delivery Staff" value={String(deliveryStaff.length)} icon={Truck} />
-            <StatCard label="Pending Orders" value={String(pending.length)} icon={AlertTriangle} color="text-amber-500" />
+            <StatCard label="Active Products" value={String(products.filter(p => p.is_active).length)} icon={Package} sub={`${products.length} total`} {...cardClick("Active Products", () => productsTable(products.filter(p => p.is_active)))} />
+            <StatCard label="Selling Partners" value={String(sellerProfiles.length)} icon={Store} sub={`${sellerProducts.filter(sp => sp.is_approved).length} approved products`} {...cardClick("Selling Partners", () => sellersTable())} />
+            <StatCard label="Delivery Staff" value={String(deliveryStaff.length)} icon={Truck} {...cardClick("Delivery Staff", () => staffTable())} />
+            <StatCard label="Pending Orders" value={String(pending.length)} icon={AlertTriangle} color="text-amber-500" {...cardClick("Pending Orders", () => ordersTable(pending))} />
           </div>
 
           {/* Monthly Revenue & Profit Chart */}
-          <Card>
+          <Card {...cardClick("Monthly Revenue & Profit", () => monthlyTable())}>
             <CardHeader><CardTitle>Monthly Revenue & Profit</CardTitle></CardHeader>
             <CardContent>
               {monthlyData.length === 0 ? (
@@ -707,7 +1004,7 @@ const ReportsPage = () => {
 
           {/* Order Status Donut */}
           <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
+            <Card {...cardClick("Orders by Status", () => statusOrdersTable())}>
               <CardHeader><CardTitle>Order Status Distribution</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={220}>
@@ -721,7 +1018,7 @@ const ReportsPage = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card {...cardClick("Revenue by Category", () => categoryTable())}>
               <CardHeader><CardTitle>Revenue by Category</CardTitle></CardHeader>
               <CardContent>
                 {catData.length === 0 ? <p className="text-muted-foreground text-center py-8">No data yet</p> : (
@@ -742,50 +1039,20 @@ const ReportsPage = () => {
         {/* ── P&L ── */}
         <TabsContent value="pl" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <StatCard label="Gross Revenue" value={fmt(grossRevenue)} icon={TrendingUp} sub="Sum of delivered order totals" color="text-green-600" />
-            <StatCard label="Cost of Goods Sold" value={fmt(cogs)} icon={Package} sub="Sum of purchase_rate × qty" color="text-amber-500" />
-            <StatCard label="Gross Profit" value={fmt(grossProfit)} icon={BarChart3} sub={`${grossMargin.toFixed(1)}% gross margin`} color={grossProfit >= 0 ? "text-green-600" : "text-destructive"} />
+            <StatCard label="Gross Revenue" value={fmt(grossRevenue)} icon={TrendingUp} sub="Sum of delivered order totals" color="text-green-600" {...cardClick("Gross Revenue — delivered orders", () => financeTable(delivered))} />
+            <StatCard label="Cost of Goods Sold" value={fmt(cogs)} icon={Package} sub="Sum of purchase_rate × qty" color="text-amber-500" {...cardClick("Cost of Goods Sold — by order", () => financeTable(delivered))} />
+            <StatCard label="Gross Profit" value={fmt(grossProfit)} icon={BarChart3} sub={`${grossMargin.toFixed(1)}% gross margin`} color={grossProfit >= 0 ? "text-green-600" : "text-destructive"} {...cardClick("Gross Profit — by order", () => financeTable(delivered))} />
           </div>
 
-          <Collapsible>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                  <CardTitle className="flex items-center justify-between">
-                    P&L Summary
-                    <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [&[data-state=open]]:rotate-180" />
-                  </CardTitle>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent>
-                  <Table>
-                    <TableBody>
-                      {[
-                        { label: "Gross Revenue (Delivered Orders)", value: fmt(grossRevenue), bold: false },
-                        { label: "(-) Cost of Goods Sold (COGS)", value: fmt(cogs), bold: false },
-                        { label: "Gross Profit", value: fmt(grossProfit), bold: true },
-                        { label: "Gross Margin %", value: `${grossMargin.toFixed(2)}%`, bold: true },
-                        { label: "Total Orders", value: String(orders.length), bold: false },
-                        { label: "Delivered Orders", value: String(delivered.length), bold: false },
-                        { label: "Cancelled Orders", value: String(cancelled.length), bold: false },
-                        { label: "Pending Orders", value: String(pending.length), bold: false },
-                        { label: "Average Order Value (Delivered)", value: delivered.length ? fmt(grossRevenue / delivered.length) : "—", bold: false },
-                      ].map(row => (
-                        <TableRow key={row.label}>
-                          <TableCell className={row.bold ? "font-semibold" : ""}>{row.label}</TableCell>
-                          <TableCell className={`text-right ${row.bold ? "font-bold text-lg" : ""}`}>{row.value}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+          <Card {...cardClick("P&L Summary", () => plTable())}>
+            <CardHeader><CardTitle>P&L Summary</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Gross profit {fmt(grossProfit)} · {grossMargin.toFixed(1)}% margin. Click to see the full summary.</p>
+            </CardContent>
+          </Card>
 
           {/* Monthly P&L table */}
-          <Card>
+          <Card {...cardClick("Monthly P&L Breakdown", () => monthlyTable())}>
             <CardHeader><CardTitle>Monthly P&L Breakdown</CardTitle></CardHeader>
             <CardContent>
               {monthlyData.length === 0 ? <p className="text-muted-foreground text-center py-6">No delivered orders</p> : (
@@ -821,13 +1088,13 @@ const ReportsPage = () => {
         {/* ── PRODUCTS ── */}
         <TabsContent value="products" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard label="Total Products" value={String(products.length)} icon={Package} sub={`${products.filter(p => p.is_active).length} active`} />
-            <StatCard label="Top Product Revenue" value={topProducts[0] ? fmt(topProducts[0].revenue) : "—"} icon={TrendingUp} sub={topProducts[0]?.name} color="text-green-600" />
-            <StatCard label="Low Stock Alert" value={String(lowStockProds.length)} icon={AlertTriangle} sub="≤5 units" color="text-amber-500" />
+            <StatCard label="Total Products" value={String(products.length)} icon={Package} sub={`${products.filter(p => p.is_active).length} active`} {...cardClick("All Products", () => productsTable(products))} />
+            <StatCard label="Top Product Revenue" value={topProducts[0] ? fmt(topProducts[0].revenue) : "—"} icon={TrendingUp} sub={topProducts[0]?.name} color="text-green-600" {...cardClick("Products by Revenue", () => topProductsTable())} />
+            <StatCard label="Low Stock Alert" value={String(lowStockProds.length)} icon={AlertTriangle} sub="≤5 units" color="text-amber-500" {...cardClick("Low Stock Products", () => productsTable(lowStockProds))} />
           </div>
 
           {/* Top Products */}
-          <Card>
+          <Card {...cardClick("Products by Revenue (Delivered)", () => topProductsTable())}>
             <CardHeader><CardTitle>Top Products by Revenue (Delivered)</CardTitle></CardHeader>
             <CardContent>
               {topProducts.length === 0 ? <p className="text-muted-foreground text-center py-6">No sales data</p> : (
@@ -870,7 +1137,7 @@ const ReportsPage = () => {
 
           {/* Low Stock */}
           {lowStockProds.length > 0 && (
-            <Card>
+            <Card {...cardClick("Low Stock Products", () => productsTable(lowStockProds))}>
               <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-destructive" /> Low Stock Products</CardTitle></CardHeader>
               <CardContent>
                 <Table>
@@ -901,12 +1168,12 @@ const ReportsPage = () => {
         {/* ── SELLERS ── */}
         <TabsContent value="sellers" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard label="Total Sellers" value={String(sellerProfiles.length)} icon={Store} />
-            <StatCard label="Seller Products" value={String(sellerProducts.length)} icon={Package} sub={`${sellerProducts.filter(sp => sp.is_approved).length} approved`} />
-            <StatCard label="Total Seller Revenue" value={fmt(sellerPerf.reduce((s, p) => s + p.revenue, 0))} icon={Wallet} color="text-primary" />
+            <StatCard label="Total Sellers" value={String(sellerProfiles.length)} icon={Store} {...cardClick("Sellers", () => sellersTable())} />
+            <StatCard label="Seller Products" value={String(sellerProducts.length)} icon={Package} sub={`${sellerProducts.filter(sp => sp.is_approved).length} approved`} {...cardClick("Seller Products", () => sellerProductsTable(sellerProducts))} />
+            <StatCard label="Total Seller Revenue" value={fmt(sellerPerf.reduce((s, p) => s + p.revenue, 0))} icon={Wallet} color="text-primary" {...cardClick("Seller Revenue", () => sellersTable())} />
           </div>
 
-          <Card>
+          <Card {...cardClick("Seller Performance", () => sellersTable())}>
             <CardHeader><CardTitle>Seller Performance</CardTitle></CardHeader>
             <CardContent>
               {sellerPerf.length === 0 ? <p className="text-muted-foreground text-center py-6">No sellers yet</p> : (
@@ -938,7 +1205,7 @@ const ReportsPage = () => {
 
           {/* Unapproved seller products */}
           {sellerProducts.filter(sp => !sp.is_approved).length > 0 && (
-            <Card>
+            <Card {...cardClick("Seller Products Pending Approval", () => sellerProductsTable(sellerProducts.filter(sp => !sp.is_approved)))}>
               <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-destructive" /> Pending Approval</CardTitle></CardHeader>
               <CardContent>
                 <Table>
@@ -967,12 +1234,12 @@ const ReportsPage = () => {
         {/* ── DELIVERY ── */}
         <TabsContent value="delivery" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard label="Delivery Staff" value={String(deliveryStaff.length)} icon={Truck} />
-            <StatCard label="Orders Delivered" value={String(delivered.length)} icon={CheckCircle} color="text-green-600" />
-            <StatCard label="Orders Pending" value={String(pending.length)} icon={AlertTriangle} color="text-amber-500" />
+            <StatCard label="Delivery Staff" value={String(deliveryStaff.length)} icon={Truck} {...cardClick("Delivery Staff", () => staffTable())} />
+            <StatCard label="Orders Delivered" value={String(delivered.length)} icon={CheckCircle} color="text-green-600" {...cardClick("Delivered Orders", () => ordersTable(delivered))} />
+            <StatCard label="Orders Pending" value={String(pending.length)} icon={AlertTriangle} color="text-amber-500" {...cardClick("Pending Orders", () => ordersTable(pending))} />
           </div>
 
-          <Card>
+          <Card {...cardClick("Delivery Staff Performance", () => staffTable())}>
             <CardHeader><CardTitle>Delivery Staff Performance</CardTitle></CardHeader>
             <CardContent>
               {staffPerfArr.length === 0 ? <p className="text-muted-foreground text-center py-6">No delivery staff yet</p> : (
@@ -1020,12 +1287,12 @@ const ReportsPage = () => {
         {/* ── STOCK ── */}
         <TabsContent value="stock" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard label="Total Stock Units" value={totalGodownStock.toLocaleString()} icon={Package} sub="Across all godowns" />
-            <StatCard label="Stock Value (Cost)" value={fmt(totalStockValue)} icon={Wallet} color="text-green-600" />
-            <StatCard label="Low Stock Items" value={String(lowStockProds.length)} icon={AlertTriangle} sub="≤5 units" color="text-amber-500" />
+            <StatCard label="Total Stock Units" value={totalGodownStock.toLocaleString()} icon={Package} sub="Across all godowns" {...cardClick("Stock by Product", () => stockTable())} />
+            <StatCard label="Stock Value (Cost)" value={fmt(totalStockValue)} icon={Wallet} color="text-green-600" {...cardClick("Stock Value by Product", () => stockTable())} />
+            <StatCard label="Low Stock Items" value={String(lowStockProds.length)} icon={AlertTriangle} sub="≤5 units" color="text-amber-500" {...cardClick("Low Stock Products", () => productsTable(lowStockProds))} />
           </div>
 
-          <Card>
+          <Card {...cardClick("Stock by Product (Godowns)", () => stockTable())}>
             <CardHeader><CardTitle>Stock by Product (Godowns)</CardTitle></CardHeader>
             <CardContent>
               <Table>
@@ -1068,12 +1335,12 @@ const ReportsPage = () => {
         {/* ── GEOGRAPHY ── */}
         <TabsContent value="geography" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard label="Active Areas" value={String(lbPerfArr.length)} icon={Users} />
-            <StatCard label="Top Area" value={lbPerfArr[0]?.name || "—"} icon={TrendingUp} sub={lbPerfArr[0] ? fmt(lbPerfArr[0].revenue) : ""} color="text-green-600" />
-            <StatCard label="Top Area Orders" value={String(lbPerfArr[0]?.orders || 0)} icon={ShoppingCart} />
+            <StatCard label="Active Areas" value={String(lbPerfArr.length)} icon={Users} {...cardClick("Areas", () => areaTable())} />
+            <StatCard label="Top Area" value={lbPerfArr[0]?.name || "—"} icon={TrendingUp} sub={lbPerfArr[0] ? fmt(lbPerfArr[0].revenue) : ""} color="text-green-600" {...cardClick("Areas", () => areaTable())} />
+            <StatCard label="Top Area Orders" value={String(lbPerfArr[0]?.orders || 0)} icon={ShoppingCart} {...cardClick("Areas", () => areaTable())} />
           </div>
 
-          <Card>
+          <Card {...cardClick("Revenue by Area", () => areaTable())}>
             <CardHeader><CardTitle>Revenue by Local Body / Area</CardTitle></CardHeader>
             <CardContent>
               {lbPerfArr.length === 0 ? <p className="text-muted-foreground text-center py-6">No location data</p> : (
@@ -1118,14 +1385,14 @@ const ReportsPage = () => {
         {/* ── SEARCH ANALYTICS ── */}
         <TabsContent value="search" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Total Searches" value={String(searchAnalytics.totalSearches)} icon={Search} sub="all time filtered" />
-            <StatCard label="Unique Searchers" value={String(searchAnalytics.uniqueSearchers)} icon={Users} sub="distinct customers" />
-            <StatCard label="Zero-Result Searches" value={String(searchAnalytics.zeroResultTotal)} icon={AlertTriangle} sub={pct(searchAnalytics.zeroResultTotal, searchAnalytics.totalSearches) + " of searches"} color="text-destructive" />
-            <StatCard label="Avg Searches/User" value={searchAnalytics.uniqueSearchers > 0 ? (searchAnalytics.totalSearches / searchAnalytics.uniqueSearchers).toFixed(1) : "0"} icon={BarChart3} />
+            <StatCard label="Total Searches" value={String(searchAnalytics.totalSearches)} icon={Search} sub="all time filtered" {...cardClick("All Searches", () => searchesTable(filteredSearchHistory))} />
+            <StatCard label="Unique Searchers" value={String(searchAnalytics.uniqueSearchers)} icon={Users} sub="distinct customers" {...cardClick("Searchers", () => searchersTable())} />
+            <StatCard label="Zero-Result Searches" value={String(searchAnalytics.zeroResultTotal)} icon={AlertTriangle} sub={pct(searchAnalytics.zeroResultTotal, searchAnalytics.totalSearches) + " of searches"} color="text-destructive" {...cardClick("Zero-Result Searches", () => searchesTable(filteredSearchHistory.filter(sh => (sh.result_count ?? 0) === 0)))} />
+            <StatCard label="Avg Searches/User" value={searchAnalytics.uniqueSearchers > 0 ? (searchAnalytics.totalSearches / searchAnalytics.uniqueSearchers).toFixed(1) : "0"} icon={BarChart3} {...cardClick("Searches per User", () => searchersTable())} />
           </div>
 
           {/* Search Volume Chart */}
-          <Card>
+          <Card {...cardClick("Daily Search Volume", () => dailySearchTable())}>
             <CardHeader>
               <CardTitle className="text-base">Daily Search Volume</CardTitle>
             </CardHeader>
@@ -1148,7 +1415,7 @@ const ReportsPage = () => {
 
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Top Searches */}
-            <Card>
+            <Card {...cardClick("Top Searches", () => queryTable(false))}>
               <CardHeader>
                 <CardTitle className="text-base">Top Searches</CardTitle>
               </CardHeader>
@@ -1183,7 +1450,7 @@ const ReportsPage = () => {
             </Card>
 
             {/* Zero-Result Searches */}
-            <Card>
+            <Card {...cardClick("Zero-Result Searches", () => queryTable(true))}>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-destructive" />
@@ -1239,22 +1506,22 @@ const ReportsPage = () => {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Total Customers" value={String(customerAnalytics.totalCustomers)} icon={Users} />
-            <StatCard label="Active Customers" value={String(customerAnalytics.active.length)} icon={UserCheck} sub={pct(customerAnalytics.active.length, customerAnalytics.totalCustomers)} color="text-green-600" />
-            <StatCard label="Inactive Customers" value={String(customerAnalytics.inactive.length)} icon={UserX} sub={`No order in ${custInactiveDays}+ days`} color="text-destructive" />
-            <StatCard label="Never Ordered" value={String(customerAnalytics.neverOrdered.length)} icon={AlertTriangle} sub={pct(customerAnalytics.neverOrdered.length, customerAnalytics.totalCustomers)} color="text-amber-500" />
+            <StatCard label="Total Customers" value={String(customerAnalytics.totalCustomers)} icon={Users} {...cardClick("All Customers", () => customersTable(customerAnalytics.filtered))} />
+            <StatCard label="Active Customers" value={String(customerAnalytics.active.length)} icon={UserCheck} sub={pct(customerAnalytics.active.length, customerAnalytics.totalCustomers)} color="text-green-600" {...cardClick("Active Customers", () => customersTable(customerAnalytics.active))} />
+            <StatCard label="Inactive Customers" value={String(customerAnalytics.inactive.length)} icon={UserX} sub={`No order in ${custInactiveDays}+ days`} color="text-destructive" {...cardClick("Inactive Customers", () => customersTable(customerAnalytics.inactive))} />
+            <StatCard label="Never Ordered" value={String(customerAnalytics.neverOrdered.length)} icon={AlertTriangle} sub={pct(customerAnalytics.neverOrdered.length, customerAnalytics.totalCustomers)} color="text-amber-500" {...cardClick("Never Ordered", () => customersTable(customerAnalytics.neverOrdered))} />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="New Customers (7d)" value={String(customerAnalytics.newCust.length)} icon={UserPlus} color="text-blue-500" />
-            <StatCard label="Repeat Customers" value={String(customerAnalytics.repeatCustomers.length)} icon={Activity} sub={pct(customerAnalytics.repeatCustomers.length, customerAnalytics.totalCustomers)} />
-            <StatCard label="Customer Revenue" value={fmt(customerAnalytics.totalRevenue)} icon={TrendingUp} color="text-green-600" />
-            <StatCard label="Avg Order Value" value={fmt(customerAnalytics.avgOrderValue)} icon={ShoppingCart} />
+            <StatCard label="New Customers (7d)" value={String(customerAnalytics.newCust.length)} icon={UserPlus} color="text-blue-500" {...cardClick("New Customers (7 days)", () => customersTable(customerAnalytics.newCust))} />
+            <StatCard label="Repeat Customers" value={String(customerAnalytics.repeatCustomers.length)} icon={Activity} sub={pct(customerAnalytics.repeatCustomers.length, customerAnalytics.totalCustomers)} {...cardClick("Repeat Customers", () => customersTable(customerAnalytics.repeatCustomers))} />
+            <StatCard label="Customer Revenue" value={fmt(customerAnalytics.totalRevenue)} icon={TrendingUp} color="text-green-600" {...cardClick("Customer Revenue", () => customersTable([...customerAnalytics.filtered].sort((a, b) => b.totalSpent - a.totalSpent)))} />
+            <StatCard label="Avg Order Value" value={fmt(customerAnalytics.avgOrderValue)} icon={ShoppingCart} {...cardClick("Customers by Average Order", () => customersTable(customerAnalytics.active))} />
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Status Distribution Pie */}
-            <Card>
+            <Card {...cardClick("Customers by Status", () => customersTable(customerAnalytics.filtered))}>
               <CardHeader><CardTitle className="text-base">Customer Status Distribution</CardTitle></CardHeader>
               <CardContent>
                 {customerAnalytics.statusDist.length === 0 ? (
@@ -1276,7 +1543,7 @@ const ReportsPage = () => {
             </Card>
 
             {/* Activity by Panchayath */}
-            <Card>
+            <Card {...cardClick("Customer Activity by Area", () => customerAreaTable())}>
               <CardHeader><CardTitle className="text-base">Customer Activity by Area</CardTitle></CardHeader>
               <CardContent>
                 {customerAnalytics.lbActivityArr.length === 0 ? (
@@ -1300,7 +1567,7 @@ const ReportsPage = () => {
           </div>
 
           {/* Top Spenders */}
-          <Card>
+          <Card {...cardClick("Customers by Spending", () => customersTable([...customerAnalytics.filtered].sort((a, b) => b.totalSpent - a.totalSpent)))}>
             <CardHeader><CardTitle className="text-base">Top 10 Customers by Spending</CardTitle></CardHeader>
             <CardContent>
               {customerAnalytics.topSpenders.length === 0 ? (
@@ -1343,7 +1610,7 @@ const ReportsPage = () => {
           </Card>
 
           {/* Full Customer List */}
-          <Card>
+          <Card {...cardClick("All Customers", () => customersTable(customerAnalytics.filtered))}>
             <CardHeader><CardTitle className="text-base">All Customers ({customerAnalytics.filtered.length})</CardTitle></CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -1389,6 +1656,16 @@ const ReportsPage = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!detail} onOpenChange={(o) => { if (!o) setDetail(null); }}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{detail?.title}</DialogTitle>
+            <DialogDescription>Full details behind this figure (current filters applied).</DialogDescription>
+          </DialogHeader>
+          {detail?.body}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };

@@ -60,3 +60,6 @@
 - [ ] Legacy/temporary accounts forced to set new password after login (status legacy -> migrated)
 - [ ] Admin "Set Password" (temporary, must change on next login), admin-only on server
 - [ ] No DOB-based recovery for customers
+
+## Admin Reports click-to-open details
+- [x] Every stat tile and report card on /admin/reports opens a popup with the full list behind it (orders, finance, products, sellers, delivery, stock, areas, searches, customers); P&L summary now opens as a popup. Type check passed; live admin view unverified (needs admin sign-in).
